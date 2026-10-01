@@ -1,6 +1,8 @@
 # Nota da partida — fórmula v1
 
-**Status:** aprovada em 2026-10-01 como versão `v1`. Ainda não implementada.
+**Status:** aprovada em 2026-10-01 como versão `v1`. Implementada em
+`src/domain/rating/v1.ts`; os exemplos deste documento são testes em
+`src/domain/rating/v1.test.ts`.
 
 Esta versão não é definitiva. Mudanças de pesos ou de regras entram como uma
 nova versão (`v2`, em arquivo próprio), e as notas já gravadas com a `v1` não
@@ -16,14 +18,23 @@ Da partida: gols do Varejista (GP) e gols do adversário (GC).
 
 Tudo considera a partida inteira. O sistema não registra minutos jogados.
 
+- **Disputa de pênaltis:** o resultado usado é o da partida já decidida. Empate
+  com vitória nos pênaltis conta como vitória; com derrota, como derrota. Os
+  gols das cobranças não são gols da partida e não entram em GP nem em GC.
+- **Pênaltis defendidos** (`penalties_saved`) não entram na nota v1. Eles já
+  estão contados dentro das defesas.
+
 ## Grupos de posição
 
-| Grupo | Posições                               |
-| ----- | -------------------------------------- |
-| GOL   | goleiro                                |
-| DEF   | zagueiro, laterais                     |
-| MEI   | volante, meia central, meia ofensivo   |
-| ATA   | pontas, segundo atacante, centroavante |
+| Grupo | Posições             | Descrição                                           |
+| ----- | -------------------- | --------------------------------------------------- |
+| GOL   | GOL                  | goleiro                                             |
+| DEF   | ZAG, LD, LE          | zagueiro e laterais                                 |
+| MEI   | VOL, MC, MD, ME, MEI | volante, meia central, meias abertos, meia ofensivo |
+| ATA   | PD, PE, SA, ATA      | pontas, segundo atacante, centroavante              |
+
+As posições MD e ME foram incluídas no grupo MEI em 2026-10-01, depois da
+aprovação da fórmula; os pesos não mudaram.
 
 ## Parcelas comuns a todos
 
@@ -62,6 +73,10 @@ de atacante; atacante que passa em branco perde mais que meia; e só defensores
 
 `taxa de defesa = defesas ÷ (defesas + GC)`; vale 0 quando não houve chute.
 
+As parcelas de jogador de linha não se aplicam ao goleiro: gol e assistência
+dele têm valor fixo (sem rendimento decrescente), e ele não recebe o bônus de
+participação nem a penalidade por passar em branco.
+
 A taxa de defesa é o que protege o goleiro bombardeado: quanto mais ele
 defendeu, menos cada gol sofrido pesa (até a metade). Com as defesas somando por
 fora, um goleiro que sofre 4 gols com 10 defesas termina acima de 6,0, enquanto
@@ -72,6 +87,14 @@ o que sofre os mesmos 4 gols com 1 defesa termina em 4,0.
 1. Soma todas as parcelas.
 2. Limita ao intervalo de 3,0 a 10,0.
 3. Arredonda para uma casa decimal (meio para cima).
+
+A implementação faz a conta inteira em milésimos, com números inteiros, e só
+divide no arredondamento final. Assim um valor como 3,95 vira 4,0 de forma
+exata, sem depender de ponto flutuante.
+
+Com os pesos atuais, o pior caso possível é o do goleiro (derrota, nenhuma
+defesa, penalidade máxima de gols sofridos), que soma exatamente 3,0. O piso é
+uma proteção: nenhuma combinação da v1 chega a ficar abaixo dele.
 
 ## Exemplos hipotéticos
 

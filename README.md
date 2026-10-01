@@ -50,6 +50,7 @@ docker compose --profile app up
 | `npm run db:down`          | Para os containers                                |
 | `npm run db:generate`      | Gera migração a partir do schema                  |
 | `npm run db:migrate`       | Aplica as migrações                               |
+| `npm run db:seed`          | Insere os dados iniciais (idempotente)            |
 | `npm run db:studio`        | Abre o Drizzle Studio                             |
 
 ## Estrutura
@@ -58,8 +59,8 @@ docker compose --profile app up
 src/
   app/          rotas e páginas (App Router)
   components/   componentes de interface
-  domain/       regras puras: nota, prêmios, agregações
-  db/           cliente, schema e migrações do PostgreSQL
+  domain/       regras puras: posições, nota, prêmios e resumo da noite
+  db/           cliente, schema, migrações e seed do PostgreSQL
   server/       consultas, Server Actions e autorização
   lib/          utilitários (ambiente, datas, validação)
 docs/

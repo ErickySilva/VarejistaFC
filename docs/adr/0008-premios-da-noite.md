@@ -20,9 +20,25 @@ novo.
 4. Desempate: mais gols na noite.
 5. Empate completo: todos os empatados são craques (co-vencedores).
 
-Os demais prêmios também aceitam co-vencedores em caso de empate.
+### Artilheiro, líder de assistências e líder de G/A
 
-## Em aberto
+- Vence quem tem o maior valor na noite; empate gera co-vencedores.
+- Se o maior valor for **zero**, o prêmio não tem vencedor.
 
-- **Destaque do goleiro.** Proposta: maior média de nota entre as participações
-  como goleiro na noite; sem goleiro humano, o prêmio fica vazio.
+### Destaque do goleiro
+
+- Maior média de nota considerando só as participações **como goleiro** na
+  noite. Partidas do mesmo jogador na linha não entram nessa média.
+- Não há mínimo de partidas.
+- Empate gera co-vencedores.
+- Noite sem participação de goleiro humano não tem o prêmio.
+
+### Cálculo
+
+- As médias são comparadas de forma exata (soma das notas em décimos), sem
+  arredondar antes de comparar. O valor gravado no prêmio é a média com duas
+  casas decimais.
+- "Partidas da noite" são as partidas não excluídas.
+- Noite sem partidas não tem prêmios.
+
+As regras estão implementadas em `src/domain/night/`.
