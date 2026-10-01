@@ -36,20 +36,21 @@ docker compose --profile app up
 
 ## Scripts
 
-| Script                | O que faz                                        |
-| --------------------- | ------------------------------------------------ |
-| `npm run dev`         | Servidor de desenvolvimento                      |
-| `npm run build`       | Build de produção                                |
-| `npm run check`       | Formatação, lint, tipos e testes (o mesmo do CI) |
-| `npm run format`      | Formata o código com Prettier                    |
-| `npm run lint`        | ESLint                                           |
-| `npm run typecheck`   | Gera os tipos de rota do Next e roda o `tsc`     |
-| `npm run test`        | Testes com Vitest                                |
-| `npm run db:up`       | Sobe o PostgreSQL de desenvolvimento             |
-| `npm run db:down`     | Para os containers                               |
-| `npm run db:generate` | Gera migração a partir do schema                 |
-| `npm run db:migrate`  | Aplica as migrações                              |
-| `npm run db:studio`   | Abre o Drizzle Studio                            |
+| Script                     | O que faz                                         |
+| -------------------------- | ------------------------------------------------- |
+| `npm run dev`              | Servidor de desenvolvimento                       |
+| `npm run build`            | Build de produção                                 |
+| `npm run check`            | Formatação, lint, tipos e testes (o mesmo do CI)  |
+| `npm run format`           | Formata o código com Prettier                     |
+| `npm run lint`             | ESLint                                            |
+| `npm run typecheck`        | Gera os tipos de rota do Next e roda o `tsc`      |
+| `npm run test`             | Testes com Vitest                                 |
+| `npm run test:integration` | Regras do banco, contra um PostgreSQL descartável |
+| `npm run db:up`            | Sobe o PostgreSQL de desenvolvimento              |
+| `npm run db:down`          | Para os containers                                |
+| `npm run db:generate`      | Gera migração a partir do schema                  |
+| `npm run db:migrate`       | Aplica as migrações                               |
+| `npm run db:studio`        | Abre o Drizzle Studio                             |
 
 ## Estrutura
 
