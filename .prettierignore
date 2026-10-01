@@ -1,0 +1,8 @@
+.next
+node_modules
+coverage
+package-lock.json
+next-env.d.ts
+src/db/migrations
+# Reescrito automaticamente pelo `next dev`.
+AGENTS.md

@@ -1,0 +1,46 @@
+# Ambiente de desenvolvimento.
+#
+#   docker compose up -d db          -> só o Postgres (fluxo recomendado: app via `npm run dev`)
+#   docker compose --profile app up  -> Postgres + app dentro do Docker
+name: varejista-fc
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-varejista}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-varejista}
+      POSTGRES_DB: ${POSTGRES_DB:-varejista}
+      TZ: America/Sao_Paulo
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    profiles: ["app"]
+    build:
+      context: .
+      target: dev
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-varejista}:${POSTGRES_PASSWORD:-varejista}@db:5432/${POSTGRES_DB:-varejista}
+      # Bind mounts no Windows não propagam eventos de arquivo.
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:
