@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MatchResult } from "../match";
 import { POSITIONS, type Position } from "../positions";
-import { calculateRating, CURRENT_RATING_VERSION } from "./index";
 import type { RatingInput } from "./types";
 import { calculateRatingV1 } from "./v1";
 
@@ -226,14 +225,5 @@ describe("nota v1: entradas inválidas", () => {
     ["derrota informada como empate", line("ATA", 0, 2, 0, 0, "D")],
   ])("rejeita %s", (_name, input) => {
     expect(() => calculateRatingV1(input)).toThrow(RangeError);
-  });
-});
-
-describe("seleção de versão", () => {
-  it("a versão vigente é a v1 e é a usada por padrão", () => {
-    const input = line("ATA", 4, 1, 2, 1);
-    expect(CURRENT_RATING_VERSION).toBe("v1");
-    expect(calculateRating(input)).toEqual(calculateRatingV1(input));
-    expect(calculateRating(input, "v1").version).toBe("v1");
   });
 });

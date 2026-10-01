@@ -1,7 +1,7 @@
 import type { MatchResult } from "../match";
 import type { Position } from "../positions";
 
-export const RATING_VERSIONS = ["v1"] as const;
+export const RATING_VERSIONS = ["v1", "v2"] as const;
 
 export type RatingVersion = (typeof RATING_VERSIONS)[number];
 
@@ -12,6 +12,9 @@ export interface RatingInput {
   assists: number;
   // Obrigatório para goleiro; ignorado para jogadores de linha.
   saves: number | null;
+  // Pênaltis defendidos pelo goleiro durante a partida, já incluídos em
+  // `saves`. Usado a partir da v2; a v1 ignora.
+  penaltiesSaved?: number | null;
   goalsFor: number;
   goalsAgainst: number;
   // Já considera a disputa de pênaltis, quando houve.

@@ -3,8 +3,9 @@
 Aplicação web para registrar e acompanhar as estatísticas do Varejista FC no
 EA FC Pro Clubs.
 
-O projeto está na fundação: estrutura, ferramentas, Docker e CI. As
-funcionalidades de negócio ainda não foram implementadas.
+Já funcionam o login, a gestão de contas no servidor e o fluxo de gameplay
+(iniciar, registrar partidas, corrigir, encerrar). A área pública e a
+identidade visual ainda não foram feitas.
 
 ## Stack
 
@@ -69,13 +70,13 @@ src/
   lib/          utilitários (ambiente, datas, validação)
 docs/
   adr/          decisões de arquitetura
-  nota-v1.md    proposta da fórmula da nota
+  nota-v2.md    fórmula da nota vigente (parte da v1)
 ```
 
 ## Documentação
 
 - [Decisões de arquitetura](docs/adr/README.md)
-- [Fórmula da nota v1 (proposta)](docs/nota-v1.md)
+- [Fórmula da nota v2 (vigente)](docs/nota-v2.md) e [v1](docs/nota-v1.md)
 
 ## CI
 

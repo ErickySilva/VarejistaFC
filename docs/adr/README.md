@@ -16,5 +16,7 @@ Uma decisão só muda com um novo ADR que substitua o anterior.
 | [0009](0009-postgres-drizzle.md)                  | PostgreSQL com Drizzle ORM                               | Aceita |
 | [0010](0010-nota-versionada.md)                   | Nota da partida com fórmula versionada                   | Aceita |
 | [0011](0011-autenticacao-e-autorizacao.md)        | Autenticação e autorização com Better Auth               | Aceita |
+| [0012](0012-gameplay.md)                          | Fluxo de gameplay                                        | Aceita |
 
-A fórmula da nota vigente é a `v1`, em [../nota-v1.md](../nota-v1.md).
+A fórmula da nota vigente é a `v2`, em [../nota-v2.md](../nota-v2.md); ela parte da
+`v1`, em [../nota-v1.md](../nota-v1.md).

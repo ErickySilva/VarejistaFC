@@ -1,4 +1,8 @@
 import { getAuth } from "@/server/auth/auth";
+import {
+  getActorFromHeaders,
+  type RequestContext,
+} from "@/server/auth/session";
 
 export const PASSWORD = "senha-de-teste-123";
 
@@ -40,4 +44,13 @@ export async function signIn(
     .map((entry) => entry.split(";")[0])
     .join("; ");
   return new Headers({ cookie });
+}
+
+// Contexto como o de uma requisição real: faz login e resolve o ator a partir
+// do cookie, pelo mesmo caminho usado pelas Server Actions.
+export async function contextFor(email: string): Promise<RequestContext> {
+  const headers = await signIn(email);
+  const actor = await getActorFromHeaders(headers);
+  if (!actor) throw new Error(`Sem sessão para ${email}`);
+  return { actor, headers };
 }

@@ -4,6 +4,9 @@
 `src/domain/rating/v1.ts`; os exemplos deste documento são testes em
 `src/domain/rating/v1.test.ts`.
 
+A versão vigente hoje é a [v2](nota-v2.md), que mantém tudo o que está aqui e
+acrescenta o bônus por pênalti defendido.
+
 Esta versão não é definitiva. Mudanças de pesos ou de regras entram como uma
 nova versão (`v2`, em arquivo próprio), e as notas já gravadas com a `v1` não
 são alteradas em silêncio (ver [ADR 0010](adr/0010-nota-versionada.md)).
@@ -22,7 +25,7 @@ Tudo considera a partida inteira. O sistema não registra minutos jogados.
   com vitória nos pênaltis conta como vitória; com derrota, como derrota. Os
   gols das cobranças não são gols da partida e não entram em GP nem em GC.
 - **Pênaltis defendidos** (`penalties_saved`) não entram na nota v1. Eles já
-  estão contados dentro das defesas.
+  estão contados dentro das defesas. Passam a valer um bônus na v2.
 
 ## Grupos de posição
 

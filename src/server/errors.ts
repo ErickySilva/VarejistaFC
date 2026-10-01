@@ -13,7 +13,14 @@ export type ServiceErrorCode =
   | "PLAYER_ALREADY_LINKED"
   | "LAST_ADMIN"
   | "CANNOT_DEACTIVATE_SELF"
-  | "INVALID_PASSWORD";
+  | "INVALID_PASSWORD"
+  | "NO_OPEN_NIGHT"
+  | "PREVIOUS_NIGHT_OPEN"
+  | "NIGHT_CLOSED"
+  | "NIGHT_WITHOUT_MATCHES"
+  | "NIGHT_HAS_MATCHES"
+  | "NO_ACTIVE_SEASON"
+  | "INVALID_MATCH";
 
 const DEFAULT_MESSAGES: Record<ServiceErrorCode, string> = {
   UNAUTHENTICATED: "Faça login para continuar.",
@@ -28,6 +35,17 @@ const DEFAULT_MESSAGES: Record<ServiceErrorCode, string> = {
     "O sistema precisa de pelo menos um administrador ativo. Promova outro admin antes.",
   CANNOT_DEACTIVATE_SELF: "Você não pode desativar a própria conta.",
   INVALID_PASSWORD: "A senha não atende aos requisitos.",
+  NO_OPEN_NIGHT: "Não há gameplay em andamento. Dê início à gameplay primeiro.",
+  PREVIOUS_NIGHT_OPEN:
+    "Existe uma gameplay anterior aberta. Encerre-a antes de iniciar outra.",
+  NIGHT_CLOSED:
+    "Esta gameplay já foi encerrada. Reabra-a para alterar as partidas.",
+  NIGHT_WITHOUT_MATCHES:
+    "Registre pelo menos uma partida antes de encerrar a gameplay.",
+  NIGHT_HAS_MATCHES:
+    "A gameplay já tem partidas registradas e não pode ser cancelada. Encerre-a.",
+  NO_ACTIVE_SEASON: "Não há temporada cadastrada para a data de hoje.",
+  INVALID_MATCH: "Os dados da partida são inválidos.",
 };
 
 export class ServiceError extends Error {
@@ -81,6 +99,17 @@ const CONSTRAINT_ERROR_CODES: Record<string, ServiceErrorCode> = {
   users_email_unique: "EMAIL_IN_USE",
   users_at_least_one_admin: "LAST_ADMIN",
   users_player_id_players_id_fk: "NOT_FOUND",
+  nights_single_open_idx: "PREVIOUS_NIGHT_OPEN",
+  night_is_closed: "NIGHT_CLOSED",
+  match_totals_goals: "INVALID_MATCH",
+  match_totals_assists: "INVALID_MATCH",
+  match_totals_contributions: "INVALID_MATCH",
+  match_players_single_goalkeeper_idx: "INVALID_MATCH",
+  match_players_saves_only_for_goalkeeper: "INVALID_MATCH",
+  match_players_penalties_saved_valid: "INVALID_MATCH",
+  matches_penalties_only_after_draw: "INVALID_MATCH",
+  matches_penalty_scores_valid: "INVALID_MATCH",
+  matches_penalty_scores_presence: "INVALID_MATCH",
 };
 
 // Traduz erros conhecidos do Better Auth e do banco para ServiceError. Erros

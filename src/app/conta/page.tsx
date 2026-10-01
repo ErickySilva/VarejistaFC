@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signOutAndRedirect } from "@/server/actions/auth-actions";
+import { can } from "@/server/auth/policy";
 import { getActor } from "@/server/auth/session";
 
 export const metadata: Metadata = { title: "Minha conta" };
@@ -27,6 +29,14 @@ export default async function AccountPage() {
           <dt className="opacity-70">Papel</dt>
           <dd>{ROLE_LABEL[actor.role]}</dd>
         </dl>
+        {can(actor, { action: "stats.manage" }) && (
+          <Link
+            href="/gameplay"
+            className="bg-foreground text-background mb-4 flex min-h-12 items-center justify-center rounded px-4 py-3 font-medium"
+          >
+            Gameplay
+          </Link>
+        )}
         <form action={signOutAndRedirect}>
           <button
             type="submit"

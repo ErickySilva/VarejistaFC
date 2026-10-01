@@ -1,6 +1,7 @@
 # 0010 — Nota da partida com fórmula versionada
 
-**Status:** aceita. A versão vigente é a `v1`, descrita em [../nota-v1.md](../nota-v1.md).
+**Status:** aceita. A versão vigente é a `v2`, descrita em [../nota-v2.md](../nota-v2.md).
+A `v1` ([../nota-v1.md](../nota-v1.md)) continua no código, sem alteração.
 
 ## Decisão
 
