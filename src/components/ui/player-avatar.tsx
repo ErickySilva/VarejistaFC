@@ -4,6 +4,7 @@ const SIZES = {
   sm: { box: "h-8 w-8 text-xs", pixels: 32 },
   md: { box: "h-12 w-12 text-sm", pixels: 48 },
   lg: { box: "h-28 w-28 text-2xl", pixels: 112 },
+  xl: { box: "h-36 w-36 text-3xl", pixels: 144 },
 };
 
 interface PlayerAvatarProps {
@@ -13,8 +14,8 @@ interface PlayerAvatarProps {
   size?: keyof typeof SIZES;
 }
 
-// Foto do jogador. Enquanto a foto real não é cadastrada, mostra o número da
-// camisa em um marcador neutro e provisório; havendo foto, é sempre ela.
+// Foto real do jogador, sempre que existir. Só quando não há foto cadastrada
+// aparece o número da camisa em um marcador neutro.
 export function PlayerAvatar({
   name,
   shirtNumber,
@@ -28,10 +29,12 @@ export function PlayerAvatar({
       <Image
         src={photoUrl}
         alt={`Foto de ${name}`}
-        width={pixels}
-        height={pixels}
-        unoptimized
-        className={`${box} shrink-0 rounded-full object-cover`}
+        width={pixels * 2}
+        height={pixels * 2}
+        // Arquivos do próprio projeto são otimizados pelo Next; um endereço
+        // externo é servido como está.
+        unoptimized={!photoUrl.startsWith("/")}
+        className={`${box} shrink-0 rounded-full object-cover object-top`}
       />
     );
   }

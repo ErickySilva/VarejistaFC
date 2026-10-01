@@ -43,6 +43,13 @@
       "when": 1790895487208,
       "tag": "0005_legacy_to_fc26",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790897247683,
+      "tag": "0006_player_photos",
+      "breakpoints": true
     }
   ]
 }

@@ -36,12 +36,15 @@ export async function seed(
     const insertedPlayers = await tx
       .insert(players)
       .values(
-        SEED_PLAYERS.map(({ slug, name, shirtNumber, defaultPosition }) => ({
-          slug,
-          name,
-          shirtNumber,
-          defaultPosition,
-        })),
+        SEED_PLAYERS.map(
+          ({ slug, name, shirtNumber, defaultPosition, photoUrl }) => ({
+            slug,
+            name,
+            shirtNumber,
+            defaultPosition,
+            photoUrl,
+          }),
+        ),
       )
       .onConflictDoNothing()
       .returning({ id: players.id });

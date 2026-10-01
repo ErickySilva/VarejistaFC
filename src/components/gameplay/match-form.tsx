@@ -21,6 +21,7 @@ import {
 import { registerMatch, updateMatch } from "@/server/actions/gameplay-actions";
 import type { MatchInputValues } from "@/server/actions/gameplay-schemas";
 import type { RosterPlayer } from "@/server/players/queries";
+import { PlayerAvatar } from "../ui/player-avatar";
 
 // Texto digitado da Nota FIFA → número, aceitando vírgula. Vazio é "não
 // informada"; texto que não é número vira NaN e é recusado pela validação.
@@ -369,6 +370,12 @@ export function MatchForm({ players, opponentNames, initial }: MatchFormProps) {
                   className="h-5 w-5"
                   checked={stats !== undefined}
                   onChange={() => togglePlayer(player)}
+                />
+                <PlayerAvatar
+                  name={player.name}
+                  shirtNumber={player.shirtNumber}
+                  photoUrl={player.photoUrl}
+                  size="sm"
                 />
                 #{player.shirtNumber} {player.name}
                 {!player.isActive && (

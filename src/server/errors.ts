@@ -21,10 +21,12 @@ export type ServiceErrorCode =
   | "NIGHT_HAS_MATCHES"
   | "NO_ACTIVE_SEASON"
   | "INVALID_MATCH"
-  | "SEASON_ALREADY_EXISTS";
+  | "SEASON_ALREADY_EXISTS"
+  | "PLAYER_WITHOUT_ACCOUNT"
+  | "TOO_MANY_ATTEMPTS";
 
 const DEFAULT_MESSAGES: Record<ServiceErrorCode, string> = {
-  UNAUTHENTICATED: "Faça login para continuar.",
+  UNAUTHENTICATED: "Entre para continuar.",
   FORBIDDEN: "Você não tem permissão para fazer isso.",
   INVALID_INPUT: "Dados inválidos.",
   NOT_FOUND: "Registro não encontrado.",
@@ -48,6 +50,10 @@ const DEFAULT_MESSAGES: Record<ServiceErrorCode, string> = {
   NO_ACTIVE_SEASON:
     "Não há temporada ativa. Um administrador precisa ativar uma temporada.",
   SEASON_ALREADY_EXISTS: "Já existe uma temporada com este nome.",
+  PLAYER_WITHOUT_ACCOUNT:
+    "Este jogador ainda não tem conta. Peça a um administrador para criar.",
+  TOO_MANY_ATTEMPTS:
+    "Muitas tentativas com senha errada. Tente de novo em alguns minutos.",
   INVALID_MATCH: "Os dados da partida são inválidos.",
 };
 

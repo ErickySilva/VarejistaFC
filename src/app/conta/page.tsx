@@ -13,7 +13,7 @@ const ROLE_LABEL = { admin: "Administrador", player: "Jogador" };
 // jogador e a administrativa entram nas próximas fases.
 export default async function AccountPage() {
   const actor = await getActor();
-  if (!actor) redirect("/login");
+  if (!actor) redirect("/entrar");
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-6 px-4">
@@ -29,6 +29,14 @@ export default async function AccountPage() {
           <dt className="opacity-70">Papel</dt>
           <dd>{ROLE_LABEL[actor.role]}</dd>
         </dl>
+        {can(actor, { action: "accounts.manage" }) && (
+          <Link
+            href="/admin"
+            className="border-foreground/20 mb-3 flex min-h-12 items-center justify-center rounded border px-4 py-3 font-medium"
+          >
+            Admin
+          </Link>
+        )}
         {can(actor, { action: "stats.manage" }) && (
           <Link
             href="/gameplay"

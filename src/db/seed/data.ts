@@ -23,6 +23,7 @@ interface SeedPlayer {
   name: string;
   shirtNumber: number;
   defaultPosition: Position;
+  photoUrl: string;
   legacy: {
     matches: number;
     goals: number;
@@ -38,6 +39,7 @@ export const SEED_PLAYERS: SeedPlayer[] = [
     name: "Ericky",
     shirtNumber: 7,
     defaultPosition: "MEI",
+    photoUrl: "/players/ericky.webp",
     legacy: { matches: 203, goals: 131, assists: 138, cleanSheets: null },
     nicknames: { good: "OLISO", bad: "EL GARRO" },
   },
@@ -46,6 +48,7 @@ export const SEED_PLAYERS: SeedPlayer[] = [
     name: "Lucão",
     shirtNumber: 10,
     defaultPosition: "ATA",
+    photoUrl: "/players/lucao.webp",
     legacy: { matches: 266, goals: 200, assists: 124, cleanSheets: null },
     nicknames: { good: "LUVERTZ", bad: "THACIANO" },
   },
@@ -54,6 +57,7 @@ export const SEED_PLAYERS: SeedPlayer[] = [
     name: "Felp",
     shirtNumber: 11,
     defaultPosition: "PD",
+    photoUrl: "/players/felp.webp",
     legacy: { matches: 207, goals: 104, assists: 88, cleanSheets: null },
     nicknames: { good: "CRAQUE", bad: "PERNINHA" },
   },
@@ -62,6 +66,7 @@ export const SEED_PLAYERS: SeedPlayer[] = [
     name: "Heit",
     shirtNumber: 69,
     defaultPosition: "GOL",
+    photoUrl: "/players/heit.webp",
     legacy: { matches: 144, goals: 47, assists: 20, cleanSheets: 5 },
     nicknames: { good: "MANOEL HEIT", bad: "MURALHA" },
   },

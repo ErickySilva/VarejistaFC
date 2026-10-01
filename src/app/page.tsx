@@ -169,9 +169,14 @@ export default async function Home() {
                 </Link>
               )}
               {isAdmin && (
-                <Link href="/gameplay" className="underline">
-                  Área da gameplay
-                </Link>
+                <>
+                  <Link href="/gameplay" className="underline">
+                    Área da gameplay
+                  </Link>
+                  <Link href="/admin" className="underline">
+                    Admin
+                  </Link>
+                </>
               )}
               <Link href="/conta" className="underline">
                 Minha conta
@@ -181,7 +186,7 @@ export default async function Home() {
         ) : (
           <>
             <span className="opacity-70">Você está como visitante.</span>
-            <Link href="/login" className="underline">
+            <Link href="/entrar" className="underline">
               Entrar
             </Link>
           </>

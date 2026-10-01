@@ -18,6 +18,7 @@ export interface RosterPlayer {
   name: string;
   shirtNumber: number;
   defaultPosition: Position;
+  photoUrl: string | null;
   isActive: boolean;
 }
 
@@ -28,6 +29,7 @@ async function listAllPlayers(): Promise<RosterPlayer[]> {
       name: players.name,
       shirtNumber: players.shirtNumber,
       defaultPosition: players.defaultPosition,
+      photoUrl: players.photoUrl,
       isActive: players.isActive,
     })
     .from(players)

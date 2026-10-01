@@ -6,15 +6,17 @@ EA FC Pro Clubs.
 Já funcionam o login, a gestão de contas no servidor, o fluxo de gameplay e as
 telas públicas de estatística. A identidade visual ainda é provisória.
 
-| Rota                | O que mostra                                                        |
-| ------------------- | ------------------------------------------------------------------- |
-| `/`                 | Home: gameplay em andamento, ranking, últimos resultados, destaques |
-| `/ranking`          | Ranking do Varejista, por aba e por período                         |
-| `/jogadores/[slug]` | Perfil do jogador: números, conquistas, histórico e evolução        |
-| `/partidas`         | Histórico de partidas                                               |
-| `/partidas/[id]`    | Página permanente de uma partida                                    |
-| `/gameplay`         | Operação da gameplay (só admin)                                     |
-| `/login`, `/conta`  | Entrada e conta                                                     |
+| Rota                      | O que mostra                                                        |
+| ------------------------- | ------------------------------------------------------------------- |
+| `/`                       | Home: gameplay em andamento, ranking, últimos resultados, destaques |
+| `/ranking`                | Ranking do Varejista, por aba e por período                         |
+| `/jogadores/[slug]`       | Perfil do jogador: números, conquistas, histórico e evolução        |
+| `/partidas`               | Histórico de partidas                                               |
+| `/partidas/[id]`          | Página permanente de uma partida                                    |
+| `/gameplay`               | Operação da gameplay (só admin)                                     |
+| `/entrar`                 | Entrada do clube: jogadores (tile e senha), admin e visitante       |
+| `/admin`, `/admin/contas` | Administração e gestão de contas (só admin)                         |
+| `/login`, `/conta`        | Entrada com e-mail (alternativa) e conta                            |
 
 As telas de estatística são abertas a visitantes, somente leitura.
 

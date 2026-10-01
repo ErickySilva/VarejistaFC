@@ -23,6 +23,13 @@ export const signInSchema = z.object({
   password: z.string().min(1, "Informe a senha."),
 });
 
+// Entrada pelo tile do jogador: o slug identifica o jogador; o e-mail da
+// conta nunca vem do cliente.
+export const playerSignInSchema = z.object({
+  playerSlug: z.string().min(1).max(60),
+  password: z.string().min(1, "Informe a senha."),
+});
+
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, "Informe a senha atual."),
   newPassword,

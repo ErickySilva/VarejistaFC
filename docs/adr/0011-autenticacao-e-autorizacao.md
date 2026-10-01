@@ -48,8 +48,8 @@ cada alteração (ADRs 0005 e 0006).
   confere de novo. Esconder página ou botão não é proteção.
 - O ator vem sempre da sessão lida no servidor, e o papel é lido do banco a
   cada requisição. Nenhuma Server Action recebe o autor como parâmetro.
-- `src/proxy.ts` só redireciona para o login quem não tem cookie em `/conta` e
-  `/admin`. É conveniência; o cookie não é validado ali.
+- `src/proxy.ts` só redireciona para a tela de entrada quem não tem cookie em
+  `/conta`, `/admin` e `/gameplay`. É conveniência; o cookie não é validado ali.
 - Páginas e componentes não importam o banco nem o Better Auth: só
   `src/server` (regra de lint).
 
@@ -97,6 +97,36 @@ Nenhuma transação que altere `users` pode terminar sem ao menos um admin ativo
   mensagem clara.
 - Consequência: a primeira conta do sistema precisa ser um admin.
 
+### Entrada do clube
+
+A tela `/entrar` tem três entradas:
+
+- **Jogadores**: um tile por jogador ativo, com foto, nome e número. Tocar no
+  tile leva à senha da conta vinculada àquele jogador. O servidor encontra a
+  conta pelo jogador; o e-mail nunca aparece nem é enviado pelo navegador.
+  Depois do login a sessão já sabe qual é o jogador, pelo vínculo da conta.
+- **Admin**: entrada separada, que lista só os jogadores cuja conta é de
+  administrador e leva a `/admin`. Quem é admin é definido pelo papel da conta;
+  a área confere o papel no servidor, então uma conta de jogador que tente essa
+  entrada recebe "Acesso restrito".
+- **Visitante**: leva direto à Home, sem login. As telas de estatística são
+  públicas e somente leitura; não existe ação de alteração para quem não está
+  logado, na tela nem no servidor.
+
+A senha continua com o mínimo de 8 caracteres. A entrada com e-mail e senha
+(`/login`) fica como alternativa para contas sem jogador vinculado.
+
+**Limite de tentativas.** Como os tiles tornam público quem tem conta, senhas
+erradas são contadas por origem e conta: depois de 8 erros em 15 minutos, novas
+tentativas daquela origem para aquela conta são recusadas até o prazo passar.
+A contagem fica em memória e zera com um login certo.
+
+### Área de administração
+
+`/admin` exige papel de administrador. `/admin/contas` lista as contas e
+permite criar conta, definir o papel, vincular a um jogador, redefinir senha e
+desativar ou reativar, sempre pelas Server Actions de conta, com auditoria.
+
 ### Primeiro admin
 
 `npm run auth:create-admin` pergunta e-mail, nome, senha e o jogador a
@@ -112,5 +142,6 @@ nada. As demais contas são criadas por um admin logado.
   admin).
 - Desativar uma conta encerra as sessões dela na hora.
 - A senha nunca entra na auditoria.
-- A foto do jogador é guardada como endereço ou caminho. O envio de arquivos
-  entra em fase posterior.
+- A foto do jogador é guardada como endereço ou caminho. As fotos dos quatro
+  jogadores e o escudo do clube ficam em `public/players/` e `public/brand/`.
+  O envio de arquivos pela interface entra em fase posterior.
