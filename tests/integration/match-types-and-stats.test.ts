@@ -484,13 +484,14 @@ describe("Nota FIFA", () => {
 
 describe("estatísticas por temporada e desde a criação do clube", () => {
   beforeEach(async () => {
-    // Histórico pré-sistema, ligado à temporada FC 25.
+    // Histórico pré-sistema: pertence à temporada atual, a FC 26.
     await sql`
       insert into legacy_stats
         (player_id, season_id, matches, goals, assists, clean_sheets)
-      values (${lucao}, ${fc25}, 266, 200, 124, null),
-             (${heit}, ${fc25}, 144, 47, 20, 5)`;
-    // Uma partida do sistema, na temporada ativa (FC 26).
+      values (${lucao}, ${fc26}, 266, 200, 124, null),
+             (${felp}, ${fc26}, 207, 104, 88, null),
+             (${heit}, ${fc26}, 144, 47, 20, 5)`;
+    // Uma partida do sistema, também na FC 26.
     await registerMatch(
       admin,
       matchInput({
@@ -501,52 +502,11 @@ describe("estatísticas por temporada e desde a criação do clube", () => {
     );
   });
 
-  it("temporada atual: só as partidas do sistema, com Nota VFC", async () => {
+  it("FC 26: histórico + partidas do sistema; a média VFC usa só as partidas avaliadas", async () => {
     const stats = await getPlayerStats(
       { kind: "season", seasonId: fc26 },
       "main",
     );
-
-    expect(of(stats, lucao)).toMatchObject({
-      matches: 1,
-      goals: 2,
-      assists: 1,
-      goalContributions: 3,
-      systemMatches: 1,
-      legacyMatches: 0,
-      ratedMatches: 1,
-      wins: 1,
-    });
-    expect(of(stats, lucao).averageRating).not.toBeNull();
-  });
-
-  it("temporada histórica: os números existem, a Nota VFC é indisponível", async () => {
-    const stats = await getPlayerStats(
-      { kind: "season", seasonId: fc25 },
-      "main",
-    );
-
-    expect(of(stats, lucao)).toMatchObject({
-      matches: 266,
-      goals: 200,
-      assists: 124,
-      goalContributions: 324,
-      systemMatches: 0,
-      legacyMatches: 266,
-      ratedMatches: 0,
-      averageRating: null,
-      averageFifaRating: null,
-    });
-    // Nenhuma partida foi inventada para representar o histórico.
-    const [{ count }] = await sql`
-      select count(*)::int as count from v_player_match pm
-      join nights n on n.id = pm.night_id where n.season_id = ${fc25}`;
-    expect(count).toBe(0);
-  });
-
-  it("desde a criação do clube: histórico + sistema; a média VFC usa só as partidas avaliadas", async () => {
-    const stats = await getPlayerStats({ kind: "club" }, "main");
-    const lucaoStats = of(stats, lucao);
     const expectedRating = calculateRating({
       ...line(lucao, 2, 1),
       goalsFor: 3,
@@ -554,21 +514,103 @@ describe("estatísticas por temporada e desde a criação do clube", () => {
       result: "W",
     }).rating;
 
-    expect(lucaoStats).toMatchObject({
+    expect(of(stats, lucao)).toMatchObject({
       matches: 267,
       goals: 202,
       assists: 125,
       goalContributions: 327,
       systemMatches: 1,
       legacyMatches: 266,
+      legacyGoals: 200,
+      legacyAssists: 124,
+      wins: 1,
       // 267 jogos, mas só 1 tem Nota VFC.
       ratedMatches: 1,
       averageRating: expectedRating,
     });
   });
 
+  it("quem só tem histórico fica com a Nota VFC indisponível, e os totais são preservados", async () => {
+    const stats = await getPlayerStats(
+      { kind: "season", seasonId: fc26 },
+      "main",
+    );
+
+    expect(of(stats, felp)).toMatchObject({
+      matches: 207,
+      goals: 104,
+      assists: 88,
+      goalContributions: 192,
+      systemMatches: 0,
+      legacyMatches: 207,
+      ratedMatches: 0,
+      averageRating: null,
+      averageFifaRating: null,
+    });
+  });
+
+  it("nenhuma partida fictícia representa o histórico", async () => {
+    const [{ count }] = await sql`
+      select count(*)::int as count from v_player_match
+      where player_id = ${lucao}`;
+    // Só a partida realmente registrada, não as 266 do histórico.
+    expect(count).toBe(1);
+    const [{ matches }] =
+      await sql`select count(*)::int as matches from matches`;
+    expect(matches).toBe(1);
+  });
+
+  it("desde a criação do clube: soma de todas as temporadas", async () => {
+    // Com tudo na FC 26, o clube e a temporada mostram os mesmos números.
+    const season = of(
+      await getPlayerStats({ kind: "season", seasonId: fc26 }, "main"),
+      lucao,
+    );
+    const club = of(await getPlayerStats({ kind: "club" }, "main"), lucao);
+    expect(club).toEqual(season);
+
+    // Havendo números em outra temporada, o clube soma as duas.
+    await sql`
+      insert into legacy_stats (player_id, season_id, matches, goals, assists)
+      values (${lucao}, ${fc25}, 10, 5, 5)`;
+
+    expect(
+      of(await getPlayerStats({ kind: "club" }, "main"), lucao),
+    ).toMatchObject({
+      matches: 277,
+      goals: 207,
+      assists: 130,
+      legacyMatches: 276,
+      ratedMatches: 1,
+      averageRating: season.averageRating,
+    });
+    // A FC 26 não muda.
+    expect(
+      of(
+        await getPlayerStats({ kind: "season", seasonId: fc26 }, "main"),
+        lucao,
+      ),
+    ).toEqual(season);
+    // E a outra temporada, só com histórico, não tem Nota VFC.
+    expect(
+      of(
+        await getPlayerStats({ kind: "season", seasonId: fc25 }, "main"),
+        lucao,
+      ),
+    ).toMatchObject({
+      matches: 10,
+      legacyMatches: 10,
+      systemMatches: 0,
+      ratedMatches: 0,
+      averageRating: null,
+    });
+  });
+
   it("goleiro: defesas e média só do sistema; clean sheets somam com o histórico", async () => {
-    const stats = await getPlayerStats({ kind: "club" }, "main");
+    const stats = await getPlayerStats(
+      { kind: "season", seasonId: fc26 },
+      "main",
+    );
 
     expect(of(stats, heit).goalkeeper).toEqual({
       matches: 1,
@@ -611,7 +653,7 @@ describe("estatísticas por temporada e desde a criação do clube", () => {
       "Felp",
       "Heit",
     ]);
-    expect(of(stats, felp)).toMatchObject({
+    expect(of(stats, ericky)).toMatchObject({
       matches: 0,
       goals: 0,
       ratedMatches: 0,
@@ -619,20 +661,7 @@ describe("estatísticas por temporada e desde a criação do clube", () => {
     });
   });
 
-  it("um jogador pode ter histórico em mais de uma temporada", async () => {
-    await sql`
-      insert into legacy_stats (player_id, season_id, matches, goals, assists)
-      values (${lucao}, ${fc26}, 10, 5, 5)`;
-
-    const club = of(await getPlayerStats({ kind: "club" }, "main"), lucao);
-    expect(club).toMatchObject({ legacyMatches: 276, matches: 277 });
-    const season = of(
-      await getPlayerStats({ kind: "season", seasonId: fc26 }, "main"),
-      lucao,
-    );
-    expect(season).toMatchObject({ legacyMatches: 10, systemMatches: 1 });
-
-    // Mas não dois registros na mesma temporada.
+  it("um jogador tem no máximo um registro de histórico por temporada", async () => {
     await expect(
       sql`insert into legacy_stats (player_id, season_id, matches, goals, assists)
           values (${lucao}, ${fc26}, 1, 0, 0)`,

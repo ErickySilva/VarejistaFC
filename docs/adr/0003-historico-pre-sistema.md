@@ -1,8 +1,8 @@
 # 0003 — Histórico pré-sistema separado das partidas
 
 **Status:** aceita. Revisada pelo [ADR 0013](0013-tipos-de-partida-temporadas-e-nota-fifa.md):
-o histórico passou a pertencer a uma temporada (FC 25) e entra nas estatísticas
-dessa temporada, além do total desde a criação do clube.
+o histórico passou a pertencer a uma temporada (a FC 26, temporada atual) e
+entra nas estatísticas dessa temporada, além do total desde a criação do clube.
 
 ## Contexto
 
@@ -14,8 +14,8 @@ Heit, clean sheets). Eles não têm partida, data, adversário nem posição.
 O histórico fica em uma tabela própria, uma linha por jogador e temporada, e
 nunca é convertido em partidas fictícias.
 
-- Entra no total **desde a criação do clube** e no da **temporada histórica**
-  a que pertence.
+- Entra no total **desde a criação do clube** e no da **temporada** a que
+  pertence (FC 26).
 - Não entra em estatística mensal, por noite ou por posição, nem no Rush.
 - Não tem Nota VFC: onde só há histórico, a média é mostrada como indisponível.
 - A interface mostra as duas parcelas separadas quando exibir o total geral.

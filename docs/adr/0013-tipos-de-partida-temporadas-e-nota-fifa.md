@@ -71,7 +71,9 @@ Nada é contador armazenado ([ADR 0002](0002-fonte-de-verdade-sem-contadores.md)
 ### Histórico pré-sistema por temporada
 
 - `legacy_stats` passa a ter uma linha por jogador **e temporada**.
-- O histórico existente foi ligado à temporada histórica **FC 25**.
+- O histórico existente pertence à **FC 26**, a temporada atual: ela mostra o
+  histórico somado às partidas novas. A FC 27 será a próxima temporada, e
+  "desde a criação do clube" soma todas.
 - Continua valendo: não vira partida, não tem Nota VFC, só admin altera.
 - O histórico pertence ao recorte principal.
 - Estatísticas gerais somam histórico e partidas do sistema. **A média de Nota

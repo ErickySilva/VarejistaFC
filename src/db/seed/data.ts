@@ -3,20 +3,13 @@ import type { Position } from "../../domain/positions";
 // Dados iniciais do Varejista FC. O histórico é a anotação manual anterior ao
 // sistema (ADR 0003); `cleanSheets: null` significa "não anotado".
 
-// Temporada histórica à qual o histórico pré-sistema está ligado.
-export const LEGACY_SEASON_SLUG = "fc-25";
+// Temporada à qual o histórico pré-sistema está ligado: a FC 26, que é a
+// temporada atual do clube. Ela recebe o histórico e as partidas novas.
+export const LEGACY_SEASON_SLUG = "fc-26";
 
 export const SEED_SEASONS = [
   {
     slug: LEGACY_SEASON_SLUG,
-    name: "FC 25",
-    gameEdition: "FC 25",
-    startsOn: null,
-    endsOn: null,
-    isActive: false,
-  },
-  {
-    slug: "fc-26",
     name: "FC 26",
     gameEdition: "FC 26",
     startsOn: "2026-06-06",

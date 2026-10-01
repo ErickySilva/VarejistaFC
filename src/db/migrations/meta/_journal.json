@@ -36,6 +36,13 @@
       "when": 1790893114787,
       "tag": "0004_types_seasons_fifa",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790895487208,
+      "tag": "0005_legacy_to_fc26",
+      "breakpoints": true
     }
   ]
 }

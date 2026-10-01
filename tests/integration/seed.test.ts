@@ -24,7 +24,7 @@ afterAll(async () => {
 describe("seed", () => {
   it("insere temporada, jogadores, histórico e apelidos", async () => {
     expect(await seed(db)).toEqual({
-      seasons: 2,
+      seasons: 1,
       players: 4,
       legacyStats: 4,
       nicknames: 8,
@@ -34,14 +34,6 @@ describe("seed", () => {
       select slug, name, game_edition, starts_on::text, ends_on::text, is_active
       from seasons order by slug`;
     expect(seasons).toEqual([
-      {
-        slug: "fc-25",
-        name: "FC 25",
-        game_edition: "FC 25",
-        starts_on: null,
-        ends_on: null,
-        is_active: false,
-      },
       {
         slug: "fc-26",
         name: "FC 26",
@@ -180,7 +172,7 @@ describe("seed", () => {
       legacyStats: 0,
       nicknames: 0,
     });
-    expect(await count("seasons")).toBe(2);
+    expect(await count("seasons")).toBe(1);
     expect(await count("players")).toBe(4);
     expect(await count("legacy_stats")).toBe(4);
     expect(await count("nicknames")).toBe(8);

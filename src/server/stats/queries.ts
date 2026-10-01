@@ -43,6 +43,8 @@ export interface PlayerStats {
   goalContributions: number;
   systemMatches: number;
   legacyMatches: number;
+  legacyGoals: number;
+  legacyAssists: number;
   // Resultados das partidas do sistema.
   wins: number;
   draws: number;
@@ -153,6 +155,8 @@ export async function getPlayerStats(
       goalContributions: goals + assists,
       systemMatches,
       legacyMatches,
+      legacyGoals: number("legacy_goals"),
+      legacyAssists: number("legacy_assists"),
       wins: number("wins"),
       draws: number("draws"),
       losses: number("losses"),
