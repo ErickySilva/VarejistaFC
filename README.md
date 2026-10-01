@@ -3,9 +3,20 @@
 Aplicação web para registrar e acompanhar as estatísticas do Varejista FC no
 EA FC Pro Clubs.
 
-Já funcionam o login, a gestão de contas no servidor e o fluxo de gameplay
-(iniciar, registrar partidas, corrigir, encerrar). A área pública e a
-identidade visual ainda não foram feitas.
+Já funcionam o login, a gestão de contas no servidor, o fluxo de gameplay e as
+telas públicas de estatística. A identidade visual ainda é provisória.
+
+| Rota                | O que mostra                                                        |
+| ------------------- | ------------------------------------------------------------------- |
+| `/`                 | Home: gameplay em andamento, ranking, últimos resultados, destaques |
+| `/ranking`          | Ranking do Varejista, por aba e por período                         |
+| `/jogadores/[slug]` | Perfil do jogador: números, conquistas, histórico e evolução        |
+| `/partidas`         | Histórico de partidas                                               |
+| `/partidas/[id]`    | Página permanente de uma partida                                    |
+| `/gameplay`         | Operação da gameplay (só admin)                                     |
+| `/login`, `/conta`  | Entrada e conta                                                     |
+
+As telas de estatística são abertas a visitantes, somente leitura.
 
 ## Stack
 

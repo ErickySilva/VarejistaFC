@@ -1,8 +1,9 @@
 import "server-only";
-import { asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
   matchPlayers,
+  nicknames,
   opponents,
   players,
   playerTotalsOverallView,
@@ -51,6 +52,50 @@ export async function listPlayersForMatch(
     await listAllPlayers(),
     participants.map((participant) => participant.playerId),
   );
+}
+
+export interface PlayerProfile extends RosterPlayer {
+  slug: string;
+  photoUrl: string | null;
+  // Apelidos cadastrados à mão; nunca são deduzidos da nota.
+  goodNicknames: string[];
+  badNicknames: string[];
+}
+
+// Perfil público de um jogador pelo slug. Não inclui nenhum dado de conta
+// (e-mail, papel): isso não é exposto a visitantes.
+export async function getPlayerProfile(
+  slug: string,
+): Promise<PlayerProfile | null> {
+  const [player] = await getDb()
+    .select({
+      id: players.id,
+      slug: players.slug,
+      name: players.name,
+      shirtNumber: players.shirtNumber,
+      defaultPosition: players.defaultPosition,
+      photoUrl: players.photoUrl,
+      isActive: players.isActive,
+    })
+    .from(players)
+    .where(eq(players.slug, slug));
+  if (!player) return null;
+
+  const labels = await getDb()
+    .select({ label: nicknames.label, tone: nicknames.tone })
+    .from(nicknames)
+    .where(and(eq(nicknames.playerId, player.id), eq(nicknames.isActive, true)))
+    .orderBy(asc(nicknames.id));
+
+  return {
+    ...player,
+    goodNicknames: labels
+      .filter((nickname) => nickname.tone === "good")
+      .map((nickname) => nickname.label),
+    badNicknames: labels
+      .filter((nickname) => nickname.tone === "bad")
+      .map((nickname) => nickname.label),
+  };
 }
 
 export async function listOpponentNames(): Promise<string[]> {

@@ -8,22 +8,13 @@ import {
   type NightSummary,
 } from "@/domain/night";
 import { formatReferenceDate } from "@/domain/reference-date";
+import { formatDateTime, formatRating } from "@/lib/format";
 import type { MatchDetail, NightDetail } from "@/server/nights/queries";
 import type { OverallRankingRow } from "@/server/players/queries";
+import { ResultBadge } from "../matches/match-row";
 
 // Componentes de exibição da gameplay. Não buscam dados nem calculam nada:
 // recebem o que a página já carregou.
-
-const RESULT_LABEL = { W: "Vitória", D: "Empate", L: "Derrota" };
-const RESULT_CLASS = {
-  W: "bg-green-600/15 text-green-700 dark:text-green-400",
-  D: "bg-foreground/10",
-  L: "bg-red-600/15 text-red-700 dark:text-red-400",
-};
-
-export function formatRating(value: number, digits = 1): string {
-  return value.toFixed(digits).replace(".", ",");
-}
 
 export function formatAwardValue(award: AwardType, value: number): string {
   if (award === "mvp" || award === "rush_mvp") {
@@ -56,6 +47,10 @@ export function NightHeader({
       <h2 className="text-xl font-semibold tracking-tight">
         {formatReferenceDate(night.referenceDate)}
       </h2>
+      <p className="text-xs opacity-70">
+        Início: {formatDateTime(night.startedAt)}
+        {night.closedAt && ` · Encerrada: ${formatDateTime(night.closedAt)}`}
+      </p>
       <p className="text-sm tabular-nums">{scopeLine(summary.main)}</p>
       {summary.rush.matchCount > 0 && (
         <p className="text-sm tabular-nums opacity-80">
@@ -96,12 +91,10 @@ function MatchCard({
             </p>
           )}
         </div>
-        <span
-          className={`rounded px-2 py-1 text-xs font-medium ${RESULT_CLASS[match.result]}`}
-        >
-          {RESULT_LABEL[match.result]}
-          {match.wentToPenalties && " (pên.)"}
-        </span>
+        <ResultBadge
+          result={match.result}
+          wentToPenalties={match.wentToPenalties}
+        />
       </div>
 
       <ul className="mt-3 flex flex-col gap-2 text-sm">
@@ -135,14 +128,22 @@ function MatchCard({
         ))}
       </ul>
 
-      {editable && (
+      <div className="mt-3 flex flex-wrap gap-x-4">
         <Link
-          href={`/gameplay/partida/${match.id}`}
-          className="mt-3 inline-flex min-h-11 items-center text-sm underline"
+          href={`/partidas/${match.id}`}
+          className="inline-flex min-h-11 items-center text-sm underline"
         >
-          Corrigir ou excluir
+          Ver partida
         </Link>
-      )}
+        {editable && (
+          <Link
+            href={`/gameplay/partida/${match.id}`}
+            className="inline-flex min-h-11 items-center text-sm underline"
+          >
+            Corrigir ou excluir
+          </Link>
+        )}
+      </div>
     </li>
   );
 }
