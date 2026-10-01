@@ -10,6 +10,7 @@ import {
   players,
 } from "@/db/schema";
 import type { MatchResult } from "@/domain/match";
+import type { MatchType } from "@/domain/match-type";
 import type { AwardType, NightMatch, NightParticipation } from "@/domain/night";
 import type { Position } from "@/domain/positions";
 
@@ -25,8 +26,11 @@ export interface ParticipationDetail {
   assists: number;
   saves: number | null;
   penaltiesSaved: number | null;
+  // Nota VFC, calculada pelo sistema.
   rating: number;
   ratingVersion: string;
+  // Nota FIFA, informada à mão; null quando não informada.
+  fifaRating: number | null;
 }
 
 export interface MatchDetail {
@@ -34,7 +38,7 @@ export interface MatchDetail {
   nightId: number;
   sequence: number;
   opponentName: string;
-  matchType: (typeof matches.$inferSelect)["matchType"];
+  matchType: MatchType;
   playedAt: Date;
   goalsFor: number;
   goalsAgainst: number;
@@ -97,6 +101,7 @@ async function loadParticipations(
       penaltiesSaved: matchPlayers.penaltiesSaved,
       rating: matchPlayers.rating,
       ratingVersion: matchPlayers.ratingVersion,
+      fifaRating: matchPlayers.fifaRating,
     })
     .from(matchPlayers)
     .innerJoin(players, eq(players.id, matchPlayers.playerId))
@@ -202,6 +207,7 @@ export function toDomainNight(night: NightDetail): {
   return {
     matches: night.matches.map((match) => ({
       id: match.id,
+      matchType: match.matchType,
       goalsFor: match.goalsFor,
       goalsAgainst: match.goalsAgainst,
       result: match.result,
@@ -214,6 +220,8 @@ export function toDomainNight(night: NightDetail): {
         position: participation.position,
         goals: participation.goals,
         assists: participation.assists,
+        saves: participation.saves,
+        penaltiesSaved: participation.penaltiesSaved,
         rating: participation.rating,
       })),
     ),

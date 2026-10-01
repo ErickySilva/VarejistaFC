@@ -85,7 +85,18 @@ async function OpenNight({ night }: { night: NightDetail }) {
         <MatchList matches={night.matches} editable />
       </section>
 
-      <NightStandings summary={summary} playerName={playerName} />
+      <NightStandings
+        title="Estatísticas da noite"
+        note="Partidas principais: X1 e Partida."
+        scope={summary.main}
+        playerName={playerName}
+      />
+      <NightStandings
+        title="Torneio de Rush"
+        note="Fica fora das estatísticas principais."
+        scope={summary.rush}
+        playerName={playerName}
+      />
       <AwardList
         title="Parciais da noite"
         awards={summary.awards.map((award) => ({

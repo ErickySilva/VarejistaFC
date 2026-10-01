@@ -16,8 +16,8 @@ partidas conforme terminam e encerra no fim. As regras de noite já estão no
 - A data de referência é a data de agora em `America/Sao_Paulo`, fixada no
   início. A noite é uma **sessão**: se atravessar a meia-noite, continua com a
   data em que começou.
-- A temporada é a que contém essa data. Sem temporada vigente, a gameplay não
-  começa.
+- A temporada é a que estiver ativa. Sem temporada ativa, a gameplay não
+  começa ([ADR 0013](0013-tipos-de-partida-temporadas-e-nota-fifa.md)).
 - Não existe noite nessa data: é criada, aberta.
 - Existe e está fechada: **a mesma noite é reaberta**. Os prêmios gravados são
   removidos e serão recalculados no novo encerramento. Auditado como `reopen`.
@@ -29,7 +29,8 @@ partidas conforme terminam e encerra no fim. As regras de noite já estão no
 ### Registrar partida
 
 - Só com a gameplay aberta, e só depois que a partida terminou.
-- Informa-se adversário e placar, depois quem jogou. **Só os jogadores
+- Informa-se o tipo (X1, Partida ou Torneio de Rush), adversário e placar,
+  depois quem jogou e, se quiser, a Nota FIFA de cada um. **Só os jogadores
   selecionados recebem uma participação**, e portanto um jogo; quem jogou sem
   gol nem assistência também recebe.
 - O adversário é localizado pelo nome, sem diferenciar maiúsculas, e criado se

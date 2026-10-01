@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, gte, inArray, isNull, lte, or } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { getDb, withTransaction } from "@/db";
 import {
   matches,
@@ -99,7 +99,8 @@ export interface StartGameplayResult {
 }
 
 // "Dar início à Gameplay". A data de referência é a de agora em São Paulo e
-// não muda depois, mesmo que a sessão atravesse a meia-noite.
+// não muda depois, mesmo que a sessão atravesse a meia-noite. A noite entra na
+// temporada ativa, que é trocada à mão por um admin e não pela data.
 export async function startGameplay(
   context: RequestContext,
   now: Date = new Date(),
@@ -166,14 +167,7 @@ export async function startGameplay(
     const [season] = await db
       .select({ id: seasons.id })
       .from(seasons)
-      .where(
-        and(
-          lte(seasons.startsOn, today),
-          or(isNull(seasons.endsOn), gte(seasons.endsOn, today)),
-        ),
-      )
-      .orderBy(desc(seasons.startsOn))
-      .limit(1);
+      .where(eq(seasons.isActive, true));
     if (!season) throw new ServiceError("NO_ACTIVE_SEASON");
 
     const [created] = await db
@@ -254,9 +248,18 @@ export async function closeGameplay(
       after: {
         status: "closed",
         matchCount: summary.matchCount,
-        wins: summary.wins,
-        draws: summary.draws,
-        losses: summary.losses,
+        main: {
+          matchCount: summary.main.matchCount,
+          wins: summary.main.wins,
+          draws: summary.main.draws,
+          losses: summary.main.losses,
+        },
+        rush: {
+          matchCount: summary.rush.matchCount,
+          wins: summary.rush.wins,
+          draws: summary.rush.draws,
+          losses: summary.rush.losses,
+        },
         awards: summary.awards,
       },
     });

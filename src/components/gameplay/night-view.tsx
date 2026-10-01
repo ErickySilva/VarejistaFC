@@ -1,6 +1,12 @@
 import Link from "next/link";
-import type { NightSummary } from "@/domain/night";
-import type { AwardType } from "@/domain/night";
+import { MATCH_TYPE_LABEL } from "@/domain/match-type";
+import {
+  AWARD_LABEL,
+  type AwardType,
+  type NightGoalkeeperSummary,
+  type NightScopeSummary,
+  type NightSummary,
+} from "@/domain/night";
 import { formatReferenceDate } from "@/domain/reference-date";
 import type { MatchDetail, NightDetail } from "@/server/nights/queries";
 import type { OverallRankingRow } from "@/server/players/queries";
@@ -15,20 +21,12 @@ const RESULT_CLASS = {
   L: "bg-red-600/15 text-red-700 dark:text-red-400",
 };
 
-export const AWARD_LABEL: Record<AwardType, string> = {
-  top_scorer: "Artilheiro",
-  top_assists: "Líder de assistências",
-  top_ga: "Líder de G/A",
-  mvp: "Craque da noite",
-  best_goalkeeper: "Destaque do goleiro",
-};
-
 export function formatRating(value: number, digits = 1): string {
   return value.toFixed(digits).replace(".", ",");
 }
 
 export function formatAwardValue(award: AwardType, value: number): string {
-  if (award === "mvp" || award === "best_goalkeeper") {
+  if (award === "mvp" || award === "rush_mvp") {
     return `média ${formatRating(value, 2)}`;
   }
   return String(value);
@@ -36,6 +34,10 @@ export function formatAwardValue(award: AwardType, value: number): string {
 
 const cellClass = "px-2 py-2 text-right tabular-nums";
 const headClass = "px-2 py-2 text-right font-medium";
+
+function scopeLine(scope: NightScopeSummary): string {
+  return `${scope.matchCount} ${scope.matchCount === 1 ? "partida" : "partidas"} · ${scope.wins}V ${scope.draws}E ${scope.losses}D · gols ${scope.goalsFor}–${scope.goalsAgainst}`;
+}
 
 export function NightHeader({
   night,
@@ -54,11 +56,12 @@ export function NightHeader({
       <h2 className="text-xl font-semibold tracking-tight">
         {formatReferenceDate(night.referenceDate)}
       </h2>
-      <p className="text-sm tabular-nums">
-        {summary.matchCount} {summary.matchCount === 1 ? "partida" : "partidas"}{" "}
-        · {summary.wins}V {summary.draws}E {summary.losses}D · gols{" "}
-        {summary.goalsFor}–{summary.goalsAgainst}
-      </p>
+      <p className="text-sm tabular-nums">{scopeLine(summary.main)}</p>
+      {summary.rush.matchCount > 0 && (
+        <p className="text-sm tabular-nums opacity-80">
+          Torneio de Rush: {scopeLine(summary.rush)}
+        </p>
+      )}
     </header>
   );
 }
@@ -76,7 +79,9 @@ function MatchCard({
     <li className="border-foreground/15 rounded border p-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs opacity-70">Partida {order}</p>
+          <p className="text-xs opacity-70">
+            Partida {order} · {MATCH_TYPE_LABEL[match.matchType]}
+          </p>
           <p className="font-medium">
             Varejista FC{" "}
             <span className="tabular-nums">
@@ -99,7 +104,7 @@ function MatchCard({
         </span>
       </div>
 
-      <ul className="mt-3 flex flex-col gap-1 text-sm">
+      <ul className="mt-3 flex flex-col gap-2 text-sm">
         {match.participations.map((participation) => (
           <li
             key={participation.playerId}
@@ -109,13 +114,22 @@ function MatchCard({
               {participation.playerName}{" "}
               <span className="opacity-60">{participation.position}</span>
             </span>
-            <span className="tabular-nums">
+            <span className="text-right tabular-nums">
               {participation.goals}G {participation.assists}A
               {participation.saves !== null && ` · ${participation.saves} def`}
               {participation.penaltiesSaved
                 ? ` (${participation.penaltiesSaved} pên.)`
-                : ""}{" "}
-              · <strong>{formatRating(participation.rating)}</strong>
+                : ""}
+              <br />
+              <span className="opacity-70">VFC</span>{" "}
+              <strong>{formatRating(participation.rating)}</strong>
+              {participation.fifaRating !== null && (
+                <>
+                  {" "}
+                  · <span className="opacity-70">FIFA</span>{" "}
+                  {formatRating(participation.fifaRating)}
+                </>
+              )}
             </span>
           </li>
         ))}
@@ -159,17 +173,24 @@ export function MatchList({
   );
 }
 
+// Tabela de jogadores de um recorte da noite (principais ou Rush). As colunas
+// de goleiro ficam em um bloco próprio, para não poluir esta tabela.
 export function NightStandings({
-  summary,
+  title,
+  note,
+  scope,
   playerName,
 }: {
-  summary: NightSummary;
+  title: string;
+  note?: string;
+  scope: NightScopeSummary;
   playerName: (playerId: number) => string;
 }) {
-  if (summary.players.length === 0) return null;
+  if (scope.players.length === 0) return null;
   return (
     <section>
-      <h3 className="mb-2 font-semibold">Estatísticas da noite</h3>
+      <h3 className="mb-1 font-semibold">{title}</h3>
+      {note && <p className="mb-2 text-xs opacity-70">{note}</p>}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -179,11 +200,11 @@ export function NightStandings({
               <th className={headClass}>G</th>
               <th className={headClass}>A</th>
               <th className={headClass}>G/A</th>
-              <th className={headClass}>Média</th>
+              <th className={headClass}>VFC</th>
             </tr>
           </thead>
           <tbody>
-            {summary.players.map((player) => (
+            {scope.players.map((player) => (
               <tr
                 key={player.playerId}
                 className="border-foreground/10 border-b"
@@ -201,7 +222,61 @@ export function NightStandings({
           </tbody>
         </table>
       </div>
+      <NightGoalkeepers
+        goalkeepers={scope.goalkeepers}
+        playerName={playerName}
+      />
     </section>
+  );
+}
+
+// Só quem jogou no gol naquele recorte, contando apenas as partidas no gol.
+function NightGoalkeepers({
+  goalkeepers,
+  playerName,
+}: {
+  goalkeepers: NightGoalkeeperSummary[];
+  playerName: (playerId: number) => string;
+}) {
+  if (goalkeepers.length === 0) return null;
+  return (
+    <div className="mt-3 overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-foreground/15 border-b">
+            <th className="px-2 py-2 text-left font-medium">Goleiro</th>
+            <th className={headClass}>J</th>
+            <th className={headClass}>Def</th>
+            <th className={headClass}>Pên.</th>
+            <th className={headClass}>GS</th>
+            <th className={headClass}>CS</th>
+            <th className={headClass}>VFC</th>
+          </tr>
+        </thead>
+        <tbody>
+          {goalkeepers.map((goalkeeper) => (
+            <tr
+              key={goalkeeper.playerId}
+              className="border-foreground/10 border-b"
+            >
+              <td className="px-2 py-2">{playerName(goalkeeper.playerId)}</td>
+              <td className={cellClass}>{goalkeeper.matches}</td>
+              <td className={cellClass}>{goalkeeper.saves}</td>
+              <td className={cellClass}>{goalkeeper.penaltiesSaved}</td>
+              <td className={cellClass}>{goalkeeper.goalsConceded}</td>
+              <td className={cellClass}>{goalkeeper.cleanSheets}</td>
+              <td className={cellClass}>
+                {formatRating(goalkeeper.averageRating, 2)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="mt-1 text-xs opacity-70">
+        Def: defesas · Pên.: defesas de pênalti · GS: gols sofridos · CS: jogos
+        sem sofrer gol
+      </p>
+    </div>
   );
 }
 
@@ -249,7 +324,8 @@ export function OverallRanking({ ranking }: { ranking: OverallRankingRow[] }) {
     <section>
       <h3 className="mb-1 font-semibold">Ranking geral</h3>
       <p className="mb-2 text-xs opacity-70">
-        Sistema + histórico anterior ao sistema.
+        Desde a criação do clube: partidas principais do sistema + histórico. O
+        Rush não entra.
       </p>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">

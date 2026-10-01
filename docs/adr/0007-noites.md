@@ -10,8 +10,11 @@
   parcial), não só na aplicação.
 - Partidas só são adicionadas a uma noite aberta. Corrigir uma noite finalizada
   exige reabertura por um `admin`, o que recalcula nota e prêmios e é auditado.
-- Cada noite tem uma **data de referência**. É ela que define o mês e a
-  temporada das partidas. Uma partida jogada à 0h30 de sábado pertence à sexta.
+- Cada noite tem uma **data de referência**. É ela que define o mês das
+  partidas. Uma partida jogada à 0h30 de sábado pertence à sexta.
+- A temporada da noite é a **temporada ativa** no momento em que a gameplay
+  começa; a troca de temporada é manual
+  ([ADR 0013](0013-tipos-de-partida-temporadas-e-nota-fifa.md)).
 - Datas e horas são gravadas com fuso e interpretadas em `America/Sao_Paulo`.
 - A temporada é ligada à edição do EA FC (ex.: FC 26).
 - O acompanhamento ao vivo usa **polling** de poucos segundos. Sem WebSocket.

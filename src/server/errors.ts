@@ -20,7 +20,8 @@ export type ServiceErrorCode =
   | "NIGHT_WITHOUT_MATCHES"
   | "NIGHT_HAS_MATCHES"
   | "NO_ACTIVE_SEASON"
-  | "INVALID_MATCH";
+  | "INVALID_MATCH"
+  | "SEASON_ALREADY_EXISTS";
 
 const DEFAULT_MESSAGES: Record<ServiceErrorCode, string> = {
   UNAUTHENTICATED: "Faça login para continuar.",
@@ -44,7 +45,9 @@ const DEFAULT_MESSAGES: Record<ServiceErrorCode, string> = {
     "Registre pelo menos uma partida antes de encerrar a gameplay.",
   NIGHT_HAS_MATCHES:
     "A gameplay já tem partidas registradas e não pode ser cancelada. Encerre-a.",
-  NO_ACTIVE_SEASON: "Não há temporada cadastrada para a data de hoje.",
+  NO_ACTIVE_SEASON:
+    "Não há temporada ativa. Um administrador precisa ativar uma temporada.",
+  SEASON_ALREADY_EXISTS: "Já existe uma temporada com este nome.",
   INVALID_MATCH: "Os dados da partida são inválidos.",
 };
 
@@ -100,6 +103,8 @@ const CONSTRAINT_ERROR_CODES: Record<string, ServiceErrorCode> = {
   users_at_least_one_admin: "LAST_ADMIN",
   users_player_id_players_id_fk: "NOT_FOUND",
   nights_single_open_idx: "PREVIOUS_NIGHT_OPEN",
+  seasons_slug_unique: "SEASON_ALREADY_EXISTS",
+  match_players_fifa_rating_range: "INVALID_MATCH",
   night_is_closed: "NIGHT_CLOSED",
   match_totals_goals: "INVALID_MATCH",
   match_totals_assists: "INVALID_MATCH",

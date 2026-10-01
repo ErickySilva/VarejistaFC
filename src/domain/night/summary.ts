@@ -1,5 +1,10 @@
+import { statsScope, type StatsScope } from "../match-type";
 import { calculateNightAwards } from "./awards";
-import { aggregateNightPlayers, averageRating } from "./player-totals";
+import {
+  aggregateNightGoalkeepers,
+  aggregateNightPlayers,
+  averageRating,
+} from "./player-totals";
 import type { NightAward, NightMatch, NightParticipation } from "./types";
 
 export interface NightPlayerSummary {
@@ -8,10 +13,23 @@ export interface NightPlayerSummary {
   goals: number;
   assists: number;
   goalContributions: number;
+  // Média da Nota VFC.
   averageRating: number;
 }
 
-export interface NightSummary {
+// Só quem jogou no gol, contando apenas as partidas como goleiro.
+export interface NightGoalkeeperSummary {
+  playerId: number;
+  matches: number;
+  saves: number;
+  penaltiesSaved: number;
+  goalsConceded: number;
+  cleanSheets: number;
+  averageRating: number;
+}
+
+// Números de um recorte da gameplay: partidas principais ou Rush.
+export interface NightScopeSummary {
   matchCount: number;
   wins: number;
   draws: number;
@@ -27,6 +45,16 @@ export interface NightSummary {
   cleanSheets: number;
   // Ordenado por G/A, depois gols, depois média de nota.
   players: NightPlayerSummary[];
+  goalkeepers: NightGoalkeeperSummary[];
+}
+
+export interface NightSummary {
+  // Todas as partidas da gameplay, de qualquer tipo.
+  matchCount: number;
+  // X1 e Partida: é o que conta nas estatísticas principais.
+  main: NightScopeSummary;
+  // Torneio de Rush: registrado por inteiro, com estatísticas próprias.
+  rush: NightScopeSummary;
   awards: NightAward[];
 }
 
@@ -35,8 +63,10 @@ export interface NightSummaryInput {
   participations: readonly NightParticipation[];
 }
 
-export function summarizeNight(input: NightSummaryInput): NightSummary {
-  const { matches, participations } = input;
+function summarizeScope(
+  matches: readonly NightMatch[],
+  participations: readonly NightParticipation[],
+): NightScopeSummary {
   const count = (predicate: (match: NightMatch) => boolean) =>
     matches.filter(predicate).length;
   const sum = (value: (match: NightMatch) => number) =>
@@ -62,6 +92,18 @@ export function summarizeNight(input: NightSummaryInput): NightSummary {
         a.playerId - b.playerId,
     );
 
+  const goalkeepers = aggregateNightGoalkeepers(matches, participations).map(
+    (goalkeeper) => ({
+      playerId: goalkeeper.playerId,
+      matches: goalkeeper.matches,
+      saves: goalkeeper.saves,
+      penaltiesSaved: goalkeeper.penaltiesSaved,
+      goalsConceded: goalkeeper.goalsConceded,
+      cleanSheets: goalkeeper.cleanSheets,
+      averageRating: averageRating(goalkeeper.ratingTenths, goalkeeper.matches),
+    }),
+  );
+
   return {
     matchCount: matches.length,
     wins: count((match) => match.result === "W"),
@@ -74,9 +116,27 @@ export function summarizeNight(input: NightSummaryInput): NightSummary {
     goalDifference: goalsFor - goalsAgainst,
     cleanSheets: count((match) => match.goalsAgainst === 0),
     players,
-    awards: calculateNightAwards({
-      matchCount: matches.length,
-      participations,
-    }),
+    goalkeepers,
+  };
+}
+
+export function summarizeNight(input: NightSummaryInput): NightSummary {
+  const { matches, participations } = input;
+  const scopeOfMatch = new Map(
+    matches.map((match) => [match.id, statsScope(match.matchType)]),
+  );
+  const scoped = (scope: StatsScope) =>
+    summarizeScope(
+      matches.filter((match) => statsScope(match.matchType) === scope),
+      participations.filter(
+        (participation) => scopeOfMatch.get(participation.matchId) === scope,
+      ),
+    );
+
+  return {
+    matchCount: matches.length,
+    main: scoped("main"),
+    rush: scoped("rush"),
+    awards: calculateNightAwards({ matches, participations }),
   };
 }

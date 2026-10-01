@@ -4,11 +4,13 @@ import {
   check,
   integer,
   pgTable,
+  primaryKey,
   text,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { timestamps } from "./columns";
 import { nicknameToneEnum, positionEnum } from "./enums";
+import { seasons } from "./seasons";
 
 export const players = pgTable(
   "players",
@@ -31,14 +33,18 @@ export const players = pgTable(
   ],
 );
 
-// Totais anteriores ao sistema. Entram apenas no total geral e nunca viram
-// partidas (ADR 0003).
+// Totais anteriores ao sistema, por jogador e temporada. Nunca viram partidas
+// e não têm Nota VFC (ADR 0003).
 export const legacyStats = pgTable(
   "legacy_stats",
   {
     playerId: integer("player_id")
-      .primaryKey()
+      .notNull()
       .references(() => players.id),
+    // Temporada histórica a que os números pertencem.
+    seasonId: integer("season_id")
+      .notNull()
+      .references(() => seasons.id),
     matches: integer("matches").notNull(),
     goals: integer("goals").notNull(),
     assists: integer("assists").notNull(),
@@ -46,7 +52,8 @@ export const legacyStats = pgTable(
     cleanSheets: integer("clean_sheets"),
     ...timestamps,
   },
-  () => [
+  (t) => [
+    primaryKey({ columns: [t.playerId, t.seasonId] }),
     check(
       "legacy_stats_non_negative",
       sql`matches >= 0 and goals >= 0 and assists >= 0`,

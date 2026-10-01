@@ -65,6 +65,7 @@ async function reopenNight(nightId: number) {
 interface MatchInput {
   nightId?: number;
   sequence?: number;
+  matchType?: "x1" | "match" | "rush";
   goalsFor: number;
   goalsAgainst: number;
   wentToPenalties?: boolean;
@@ -75,11 +76,11 @@ interface MatchInput {
 async function createMatch(db: Db, input: MatchInput) {
   const [row] = await db`
     insert into matches (
-      night_id, sequence, opponent_id, played_at, goals_for, goals_against,
-      went_to_penalties, penalty_score_for, penalty_score_against
+      night_id, sequence, opponent_id, match_type, played_at, goals_for,
+      goals_against, went_to_penalties, penalty_score_for, penalty_score_against
     ) values (
       ${input.nightId ?? fx.nightId}, ${input.sequence ?? 1}, ${fx.opponentId},
-      now(), ${input.goalsFor}, ${input.goalsAgainst},
+      ${input.matchType ?? "match"}, now(), ${input.goalsFor}, ${input.goalsAgainst},
       ${input.wentToPenalties ?? false},
       ${input.penaltyScoreFor ?? null}, ${input.penaltyScoreAgainst ?? null}
     )
@@ -622,9 +623,10 @@ describe("auditoria", () => {
 describe("histórico pré-sistema", () => {
   it("fica separado das estatísticas do sistema e compõe o total geral", async () => {
     await sql`
-      insert into legacy_stats (player_id, matches, goals, assists, clean_sheets)
-      values (${fx.ericky}, 203, 131, 138, null),
-             (${fx.heit}, 144, 47, 20, 5)`;
+      insert into legacy_stats
+        (player_id, season_id, matches, goals, assists, clean_sheets)
+      values (${fx.ericky}, ${fx.seasonId}, 203, 131, 138, null),
+             (${fx.heit}, ${fx.seasonId}, 144, 47, 20, 5)`;
 
     const match = await createMatch(sql, { goalsFor: 2, goalsAgainst: 0 });
     await addPlayer(sql, match.id, fx.ericky, {
@@ -689,8 +691,9 @@ describe("histórico pré-sistema", () => {
   it("rejeita clean sheets históricos acima do número de jogos", async () => {
     const error = await pgError(
       () => sql`
-        insert into legacy_stats (player_id, matches, goals, assists, clean_sheets)
-        values (${fx.heit}, 10, 0, 0, 11)`,
+        insert into legacy_stats
+          (player_id, season_id, matches, goals, assists, clean_sheets)
+        values (${fx.heit}, ${fx.seasonId}, 10, 0, 0, 11)`,
     );
     expect(error.constraint_name).toBe("legacy_stats_clean_sheets_range");
   });

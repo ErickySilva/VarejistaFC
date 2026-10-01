@@ -1,4 +1,4 @@
-import type { NightSummary } from "./summary";
+import type { NightScopeSummary, NightSummary } from "./summary";
 import type { AwardType, NightAward } from "./types";
 
 // Texto do resumo da noite, gravado em `nights.summary` no encerramento. É
@@ -17,12 +17,11 @@ function joinNames(names: string[]): string {
   return `${names.slice(0, -1).join(", ")} e ${names.at(-1)}`;
 }
 
-const AWARD_LABEL: Record<AwardType, string> = {
+export const AWARD_LABEL: Record<AwardType, string> = {
   top_scorer: "Artilheiro",
-  top_assists: "Líder de assistências",
-  top_ga: "Líder de G/A",
-  mvp: "Craque da noite",
-  best_goalkeeper: "Destaque do goleiro",
+  top_assists: "Assistente",
+  mvp: "Craque da Noite",
+  rush_mvp: "Destaque do Rush",
 };
 
 function awardValue(award: NightAward): string {
@@ -31,12 +30,32 @@ function awardValue(award: NightAward): string {
       return plural(award.value, "gol", "gols");
     case "top_assists":
       return plural(award.value, "assistência", "assistências");
-    case "top_ga":
-      return `${award.value} G/A`;
     case "mvp":
-    case "best_goalkeeper":
+    case "rush_mvp":
       return `média ${formatAverage(award.value)}`;
   }
+}
+
+function scopeSentences(label: string, scope: NightScopeSummary): string[] {
+  const sentences = [
+    `${label}${plural(scope.matchCount, "partida", "partidas")}: ${plural(scope.wins, "vitória", "vitórias")}, ${plural(scope.draws, "empate", "empates")} e ${plural(scope.losses, "derrota", "derrotas")}.`,
+  ];
+
+  const penalties: string[] = [];
+  if (scope.penaltyWins > 0) {
+    penalties.push(plural(scope.penaltyWins, "vitória", "vitórias"));
+  }
+  if (scope.penaltyLosses > 0) {
+    penalties.push(plural(scope.penaltyLosses, "derrota", "derrotas"));
+  }
+  if (penalties.length > 0) {
+    sentences.push(`Nos pênaltis: ${penalties.join(" e ")}.`);
+  }
+
+  sentences.push(
+    `${plural(scope.goalsFor, "gol marcado", "gols marcados")} e ${plural(scope.goalsAgainst, "sofrido", "sofridos")}.`,
+  );
+  return sentences;
 }
 
 export function renderNightSummary(
@@ -45,29 +64,12 @@ export function renderNightSummary(
 ): string {
   const sentences: string[] = [];
 
-  const record = [
-    plural(summary.wins, "vitória", "vitórias"),
-    plural(summary.draws, "empate", "empates"),
-    plural(summary.losses, "derrota", "derrotas"),
-  ];
-  sentences.push(
-    `${plural(summary.matchCount, "partida", "partidas")}: ${record[0]}, ${record[1]} e ${record[2]}.`,
-  );
-
-  const penalties: string[] = [];
-  if (summary.penaltyWins > 0) {
-    penalties.push(plural(summary.penaltyWins, "vitória", "vitórias"));
+  if (summary.main.matchCount > 0) {
+    sentences.push(...scopeSentences("", summary.main));
   }
-  if (summary.penaltyLosses > 0) {
-    penalties.push(plural(summary.penaltyLosses, "derrota", "derrotas"));
+  if (summary.rush.matchCount > 0) {
+    sentences.push(...scopeSentences("Torneio de Rush, ", summary.rush));
   }
-  if (penalties.length > 0) {
-    sentences.push(`Nos pênaltis: ${penalties.join(" e ")}.`);
-  }
-
-  sentences.push(
-    `${plural(summary.goalsFor, "gol marcado", "gols marcados")} e ${plural(summary.goalsAgainst, "sofrido", "sofridos")}.`,
-  );
 
   // Os prêmios já vêm agrupados por tipo; co-vencedores dividem a frase.
   const byAward = new Map<AwardType, NightAward[]>();

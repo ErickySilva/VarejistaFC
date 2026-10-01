@@ -63,6 +63,7 @@ function line(
     assists,
     saves: null,
     penaltiesSaved: null,
+    fifaRating: null,
   };
 }
 
@@ -78,13 +79,14 @@ function keeper(
     assists: 0,
     saves,
     penaltiesSaved,
+    fifaRating: null,
   };
 }
 
 function matchInput(overrides: Partial<MatchInput> = {}): MatchInput {
   return {
     opponentName: "Rivais FC",
-    matchType: null,
+    matchType: "match",
     goalsFor: 3,
     goalsAgainst: 1,
     wentToPenalties: false,
@@ -126,8 +128,8 @@ async function nightRows() {
 beforeEach(async () => {
   await resetDatabase(sql);
   await sql`
-    insert into seasons (slug, name, game_edition, starts_on)
-    values ('fc-26', 'FC 26', 'FC 26', '2026-06-06')`;
+    insert into seasons (slug, name, game_edition, starts_on, is_active)
+    values ('fc-26', 'FC 26', 'FC 26', '2026-06-06', true)`;
   ericky = await insertPlayer("Ericky", 7, "MEI");
   lucao = await insertPlayer("Lucão", 10, "ATA");
   felp = await insertPlayer("Felp", 11, "PD");
@@ -184,11 +186,27 @@ describe("dar início à gameplay", () => {
     expect(await count("nights")).toBe(0);
   });
 
-  it("sem temporada para a data: erro e nenhuma noite criada", async () => {
-    await expect(
-      startGameplay(admin, new Date("2026-01-10T23:00:00Z")),
-    ).rejects.toMatchObject({ code: "NO_ACTIVE_SEASON" });
+  it("sem temporada ativa: erro e nenhuma noite criada", async () => {
+    await sql`update seasons set is_active = false`;
+
+    await expect(startGameplay(admin, FRIDAY_EVENING)).rejects.toMatchObject({
+      code: "NO_ACTIVE_SEASON",
+    });
     expect(await count("nights")).toBe(0);
+  });
+
+  it("a temporada é a ativa, não a que contém a data", async () => {
+    // FC 27 passa a ser a ativa, mesmo com data de início no futuro.
+    await sql`update seasons set is_active = false`;
+    await sql`
+      insert into seasons (slug, name, game_edition, starts_on, is_active)
+      values ('fc-27', 'FC 27', 'FC 27', '2027-09-01', true)`;
+
+    await startGameplay(admin, FRIDAY_EVENING);
+
+    const [night] = await sql`
+      select s.slug from nights n join seasons s on s.id = n.season_id`;
+    expect(night.slug).toBe("fc-27");
   });
 
   it("depois da meia-noite a sessão continua na data em que começou", async () => {
@@ -340,8 +358,8 @@ describe("registrar partida", () => {
 
   it("as estatísticas e o ranking refletem a partida na hora", async () => {
     await sql`
-      insert into legacy_stats (player_id, matches, goals, assists)
-      values (${lucao}, 266, 200, 124)`;
+      insert into legacy_stats (player_id, season_id, matches, goals, assists)
+      values (${lucao}, (select id from seasons where slug = 'fc-26'), 266, 200, 124)`;
     await registerMatch(admin, matchInput());
 
     expect(await totals(heit)).toMatchObject({
@@ -411,7 +429,7 @@ describe("registrar partida", () => {
         wentToPenalties: true,
         penaltyScoreFor: 4,
         penaltyScoreAgainst: 3,
-        matchType: "playoff",
+        matchType: "x1",
         participations: [line(lucao, "ATA", 2), keeper(heit, 3)],
       }),
     );
@@ -422,7 +440,7 @@ describe("registrar partida", () => {
       goalsAgainst: 2,
       penaltyScoreFor: 4,
       penaltyScoreAgainst: 3,
-      matchType: "playoff",
+      matchType: "x1",
     });
     expect(match.participations.find((p) => p.playerId === lucao)?.rating).toBe(
       calculateRating({
@@ -781,20 +799,26 @@ describe("encerrar gameplay", () => {
         .map((entry) => [entry.playerName, entry.value]);
     expect(winners("top_scorer")).toEqual([["Lucão", 3]]);
     expect(winners("top_assists")).toEqual([["Ericky", 2]]);
-    // Lucão 3 gols; Ericky 1 gol + 2 assistências: empate em G/A.
-    expect(winners("top_ga")).toEqual([
-      ["Ericky", 3],
-      ["Lucão", 3],
-    ]);
-    expect(winners("best_goalkeeper")).toEqual([["Heit", expect.any(Number)]]);
     expect(winners("mvp")).toHaveLength(1);
+    // Não houve Rush, então não há Destaque do Rush; e não existem mais os
+    // prêmios de G/A e de goleiro.
+    expect([...new Set(awards.map((entry) => entry.award))]).toEqual([
+      "top_scorer",
+      "top_assists",
+      "mvp",
+    ]);
 
     const closeAudit = (await audits("nights")).at(-1);
     expect(closeAudit).toMatchObject({
       actor_user_id: admin.actor.userId,
       action: "close",
       before: { status: "open" },
-      after: { status: "closed", matchCount: 2, wins: 1, losses: 1 },
+      after: {
+        status: "closed",
+        matchCount: 2,
+        main: { matchCount: 2, wins: 1, losses: 1 },
+        rush: { matchCount: 0 },
+      },
     });
     expect((await getLatestClosedNight())?.id).toBe(closed.id);
     expect(await getOpenNight()).toBeNull();

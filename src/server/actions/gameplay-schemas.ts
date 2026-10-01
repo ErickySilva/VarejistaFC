@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MATCH_TYPES } from "@/domain/match-type";
 import { POSITIONS } from "@/domain/positions";
 
 // Entradas das Server Actions da gameplay. Aqui só se confere o formato; as
@@ -15,6 +16,8 @@ const participationSchema = z.object({
   assists: count,
   saves: count.nullable(),
   penaltiesSaved: count.nullable(),
+  // Nota FIFA: opcional. A casa decimal é conferida no domínio.
+  fifaRating: z.number().min(0).max(10).nullable(),
 });
 
 export const matchInputSchema = z.object({
@@ -23,7 +26,7 @@ export const matchInputSchema = z.object({
     .trim()
     .min(1, "Informe o adversário.")
     .max(60, "O nome do adversário pode ter no máximo 60 caracteres."),
-  matchType: z.enum(["friendly", "league", "playoff", "tournament"]).nullable(),
+  matchType: z.enum(MATCH_TYPES, "Informe o tipo da partida."),
   goalsFor: count,
   goalsAgainst: count,
   wentToPenalties: z.boolean(),

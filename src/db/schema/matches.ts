@@ -39,7 +39,9 @@ export const matches = pgTable(
     opponentId: integer("opponent_id")
       .notNull()
       .references(() => opponents.id),
-    matchType: matchTypeEnum("match_type"),
+    // X1, Partida ou Torneio de Rush. Decide em qual recorte de estatísticas
+    // a partida entra (ADR 0013).
+    matchType: matchTypeEnum("match_type").notNull(),
     playedAt: timestamp("played_at", { withTimezone: true }).notNull(),
     // Gols do jogo, sem contar a disputa de pênaltis.
     goalsFor: integer("goals_for").notNull(),
@@ -118,6 +120,13 @@ export const matchPlayers = pgTable(
       mode: "number",
     }).notNull(),
     ratingVersion: text("rating_version").notNull(),
+    // Nota mostrada pelo EA FC, informada à mão. Só informativa; a coluna
+    // `rating` é a Nota VFC, calculada pelo sistema.
+    fifaRating: numeric("fifa_rating", {
+      precision: 3,
+      scale: 1,
+      mode: "number",
+    }),
     ...timestamps,
   },
   (t) => [
@@ -143,6 +152,10 @@ export const matchPlayers = pgTable(
       )`,
     ),
     check("match_players_rating_range", sql`rating between 3.0 and 10.0`),
+    check(
+      "match_players_fifa_rating_range",
+      sql`fifa_rating is null or fifa_rating between 0.0 and 10.0`,
+    ),
   ],
 );
 

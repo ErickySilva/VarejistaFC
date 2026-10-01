@@ -1,7 +1,7 @@
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { legacyStats, nicknames, players, seasons } from "../schema";
-import { SEED_PLAYERS, SEED_SEASON } from "./data";
+import { LEGACY_SEASON_SLUG, SEED_PLAYERS, SEED_SEASONS } from "./data";
 
 export interface SeedResult {
   seasons: number;
@@ -17,11 +17,21 @@ export async function seed(
   db: PostgresJsDatabase<Record<string, unknown>>,
 ): Promise<SeedResult> {
   return db.transaction(async (tx) => {
-    const insertedSeasons = await tx
-      .insert(seasons)
-      .values(SEED_SEASON)
-      .onConflictDoNothing()
-      .returning({ id: seasons.id });
+    // Uma temporada por vez: se já existir outra temporada ativa, a do seed
+    // esbarra no índice de temporada única e é ignorada.
+    let insertedSeasons = 0;
+    for (const season of SEED_SEASONS) {
+      const inserted = await tx
+        .insert(seasons)
+        .values(season)
+        .onConflictDoNothing()
+        .returning({ id: seasons.id });
+      insertedSeasons += inserted.length;
+    }
+    const [legacySeason] = await tx
+      .select({ id: seasons.id })
+      .from(seasons)
+      .where(eq(seasons.slug, LEGACY_SEASON_SLUG));
 
     const insertedPlayers = await tx
       .insert(players)
@@ -53,7 +63,13 @@ export async function seed(
 
     const insertedLegacy = await tx
       .insert(legacyStats)
-      .values(seeded.map(({ playerId, legacy }) => ({ playerId, ...legacy })))
+      .values(
+        seeded.map(({ playerId, legacy }) => ({
+          playerId,
+          seasonId: legacySeason.id,
+          ...legacy,
+        })),
+      )
       .onConflictDoNothing()
       .returning({ playerId: legacyStats.playerId });
 
@@ -69,7 +85,7 @@ export async function seed(
       .returning({ id: nicknames.id });
 
     return {
-      seasons: insertedSeasons.length,
+      seasons: insertedSeasons,
       players: insertedPlayers.length,
       legacyStats: insertedLegacy.length,
       nicknames: insertedNicknames.length,

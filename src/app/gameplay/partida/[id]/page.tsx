@@ -70,6 +70,7 @@ export default async function EditMatchPage(
             assists: participation.assists,
             saves: participation.saves,
             penaltiesSaved: participation.penaltiesSaved,
+            fifaRating: participation.fifaRating,
           })),
         }}
       />

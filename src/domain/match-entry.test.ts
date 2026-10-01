@@ -17,6 +17,7 @@ function player(
     assists: 0,
     saves: null,
     penaltiesSaved: null,
+    fifaRating: null,
     ...overrides,
   };
 }
@@ -167,6 +168,36 @@ describe("validação da partida: goleiro", () => {
       "PENALTIES_SAVED_EXCEED_SAVES",
     ]);
     expect(codes(match({ participations: [keeper(1, 3, 3)] }))).toEqual([]);
+  });
+});
+
+describe("validação da partida: Nota FIFA", () => {
+  const withFifa = (fifaRating: number | null) =>
+    codes(match({ participations: [player(1, { fifaRating })] }));
+
+  it("é opcional", () => {
+    expect(withFifa(null)).toEqual([]);
+  });
+
+  it("aceita de 0,0 a 10,0 com uma casa decimal", () => {
+    for (const value of [0, 3.1, 7.5, 8, 9.9, 10]) {
+      expect(withFifa(value), String(value)).toEqual([]);
+    }
+  });
+
+  it("rejeita fora da faixa, com duas casas ou que não é número", () => {
+    for (const value of [-0.1, 10.1, 7.55, Number.NaN, Infinity]) {
+      expect(withFifa(value), String(value)).toEqual(["INVALID_FIFA_RATING"]);
+    }
+  });
+
+  it("vale também para o goleiro e aponta o jogador", () => {
+    const entry = match({
+      participations: [{ ...keeper(4, 3), fifaRating: 11 }],
+    });
+    expect(validateMatchEntry(entry)).toMatchObject([
+      { code: "INVALID_FIFA_RATING", playerId: 4 },
+    ]);
   });
 });
 

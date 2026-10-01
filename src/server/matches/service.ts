@@ -8,6 +8,7 @@ import {
   type MatchEntry,
   type ParticipationEntry,
 } from "@/domain/match-entry";
+import type { MatchType } from "@/domain/match-type";
 import { calculateRating } from "@/domain/rating";
 import { ineligiblePlayerIds } from "@/domain/roster";
 import { recordAudit } from "../audit";
@@ -21,11 +22,9 @@ import { getMatchDetail, type MatchDetail } from "../nights/queries";
 
 const MANAGE_STATS = { action: "stats.manage" } as const;
 
-type MatchType = NonNullable<(typeof matches.$inferSelect)["matchType"]>;
-
 export interface MatchInput extends MatchEntry {
   opponentName: string;
-  matchType: MatchType | null;
+  matchType: MatchType;
 }
 
 async function inTransaction<T>(fn: () => Promise<T>): Promise<T> {
@@ -115,6 +114,8 @@ async function insertParticipations(matchId: number, input: MatchInput) {
           penaltiesSaved: participation.penaltiesSaved,
           rating,
           ratingVersion: version,
+          // Só é guardada: não participa do cálculo acima.
+          fifaRating: participation.fifaRating,
         };
       }),
     );
@@ -142,6 +143,7 @@ function snapshot(match: MatchDetail) {
       penaltiesSaved: participation.penaltiesSaved,
       rating: participation.rating,
       ratingVersion: participation.ratingVersion,
+      fifaRating: participation.fifaRating,
     })),
   };
 }

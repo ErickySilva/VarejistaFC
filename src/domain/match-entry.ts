@@ -13,6 +13,9 @@ export interface ParticipationEntry {
   saves: number | null;
   // Pênaltis defendidos durante a partida, já incluídos em `saves`.
   penaltiesSaved: number | null;
+  // Nota mostrada pelo próprio EA FC, informada à mão. É só informativa: não
+  // entra na Nota VFC nem em prêmio algum. null = não informada.
+  fifaRating: number | null;
 }
 
 export interface MatchEntry {
@@ -26,6 +29,7 @@ export interface MatchEntry {
 
 export type MatchEntryIssueCode =
   | "INVALID_NUMBER"
+  | "INVALID_FIFA_RATING"
   | "NO_PLAYERS"
   | "DUPLICATE_PLAYER"
   | "MULTIPLE_GOALKEEPERS"
@@ -45,6 +49,13 @@ export interface MatchEntryIssue {
   message: string;
   // Jogador a que o problema se refere, quando é de uma participação.
   playerId?: number;
+}
+
+// Entre 0,0 e 10,0, com no máximo uma casa decimal; ou não informada.
+function isFifaRating(value: number | null): boolean {
+  if (value === null) return true;
+  if (!Number.isFinite(value) || value < 0 || value > 10) return false;
+  return Math.abs(value * 10 - Math.round(value * 10)) < 1e-9;
 }
 
 function isCount(value: number | null): value is number {
@@ -156,6 +167,14 @@ export function validateMatchEntry(entry: MatchEntry): MatchEntryIssue[] {
       add(
         "SAVES_NOT_ALLOWED",
         "Só o goleiro tem defesas e defesas de pênalti.",
+        playerId,
+      );
+    }
+
+    if (!isFifaRating(participation.fifaRating)) {
+      add(
+        "INVALID_FIFA_RATING",
+        "A Nota FIFA precisa estar entre 0,0 e 10,0, com no máximo uma casa decimal.",
         playerId,
       );
     }

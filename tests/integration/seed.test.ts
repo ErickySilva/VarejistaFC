@@ -24,22 +24,33 @@ afterAll(async () => {
 describe("seed", () => {
   it("insere temporada, jogadores, histórico e apelidos", async () => {
     expect(await seed(db)).toEqual({
-      seasons: 1,
+      seasons: 2,
       players: 4,
       legacyStats: 4,
       nicknames: 8,
     });
 
-    const [season] = await sql`
-      select slug, name, game_edition, starts_on::text, ends_on::text
-      from seasons`;
-    expect(season).toEqual({
-      slug: "fc-26",
-      name: "FC 26",
-      game_edition: "FC 26",
-      starts_on: "2026-06-06",
-      ends_on: null,
-    });
+    const seasons = await sql`
+      select slug, name, game_edition, starts_on::text, ends_on::text, is_active
+      from seasons order by slug`;
+    expect(seasons).toEqual([
+      {
+        slug: "fc-25",
+        name: "FC 25",
+        game_edition: "FC 25",
+        starts_on: null,
+        ends_on: null,
+        is_active: false,
+      },
+      {
+        slug: "fc-26",
+        name: "FC 26",
+        game_edition: "FC 26",
+        starts_on: "2026-06-06",
+        ends_on: null,
+        is_active: true,
+      },
+    ]);
 
     const players = await sql`
       select slug, name, shirt_number, default_position, is_active
@@ -150,9 +161,9 @@ describe("seed", () => {
       order by p.slug, n.tone`;
     expect(nicknames.map((row) => [row.slug, row.tone, row.label])).toEqual([
       ["ericky", "good", "OLISO"],
-      ["ericky", "bad", "EL GARRÓ"],
+      ["ericky", "bad", "EL GARRO"],
       ["felp", "good", "CRAQUE"],
-      ["felp", "bad", "PONTINHA BURRO"],
+      ["felp", "bad", "PERNINHA"],
       ["heit", "good", "MANOEL HEIT"],
       ["heit", "bad", "MURALHA"],
       ["lucao", "good", "LUVERTZ"],
@@ -169,7 +180,7 @@ describe("seed", () => {
       legacyStats: 0,
       nicknames: 0,
     });
-    expect(await count("seasons")).toBe(1);
+    expect(await count("seasons")).toBe(2);
     expect(await count("players")).toBe(4);
     expect(await count("legacy_stats")).toBe(4);
     expect(await count("nicknames")).toBe(8);

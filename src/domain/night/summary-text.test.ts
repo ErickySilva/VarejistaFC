@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { MatchType } from "../match-type";
 import { summarizeNight } from "./summary";
 import { renderNightSummary } from "./summary-text";
 import type { NightMatch, NightParticipation } from "./types";
@@ -17,8 +18,9 @@ function match(
   goalsAgainst: number,
   result: NightMatch["result"],
   wentToPenalties = false,
+  matchType: MatchType = "match",
 ): NightMatch {
-  return { id, goalsFor, goalsAgainst, result, wentToPenalties };
+  return { id, matchType, goalsFor, goalsAgainst, result, wentToPenalties };
 }
 
 function played(
@@ -29,7 +31,16 @@ function played(
   assists = 0,
   position: NightParticipation["position"] = "MC",
 ): NightParticipation {
-  return { playerId, matchId, position, goals, assists, rating };
+  return {
+    playerId,
+    matchId,
+    position,
+    goals,
+    assists,
+    saves: position === "GOL" ? 0 : null,
+    penaltiesSaved: null,
+    rating,
+  };
 }
 
 describe("texto do resumo da noite", () => {
@@ -49,10 +60,8 @@ describe("texto do resumo da noite", () => {
       "2 partidas: 1 vitória, 0 empates e 1 derrota. " +
         "4 gols marcados e 2 sofridos. " +
         "Artilheiro: Lucão (3 gols). " +
-        "Líder de assistências: Ericky (2 assistências). " +
-        "Líder de G/A: Lucão (3 G/A). " +
-        "Craque da noite: Heit (média 8,50). " +
-        "Destaque do goleiro: Heit (média 8,50).",
+        "Assistente: Ericky (2 assistências). " +
+        "Craque da Noite: Heit (média 8,50).",
     );
   });
 
@@ -67,8 +76,7 @@ describe("texto do resumo da noite", () => {
         "Nos pênaltis: 1 vitória. " +
         "1 gol marcado e 1 sofrido. " +
         "Artilheiro: Lucão (1 gol). " +
-        "Líder de G/A: Lucão (1 G/A). " +
-        "Craque da noite: Lucão (média 7,80).",
+        "Craque da Noite: Lucão (média 7,80).",
     );
   });
 
@@ -85,7 +93,7 @@ describe("texto do resumo da noite", () => {
     const text = renderNightSummary(summary, name);
     expect(text).toContain("Artilheiro: Ericky, Lucão e Felp (1 gol).");
     expect(text).toContain(
-      "Craque da noite: Ericky, Lucão e Felp (média 8,00).",
+      "Craque da Noite: Ericky, Lucão e Felp (média 8,00).",
     );
   });
 
@@ -98,7 +106,45 @@ describe("texto do resumo da noite", () => {
     expect(renderNightSummary(summary, name)).toBe(
       "1 partida: 0 vitórias, 1 empate e 0 derrotas. " +
         "0 gols marcados e 0 sofridos. " +
-        "Craque da noite: Ericky (média 6,00).",
+        "Craque da Noite: Ericky (média 6,00).",
+    );
+  });
+
+  it("separa o Torneio de Rush das partidas principais", () => {
+    const summary = summarizeNight({
+      matches: [
+        match(1, 2, 1, "W"),
+        match(2, 5, 3, "W", false, "rush"),
+        match(3, 1, 2, "L", false, "rush"),
+      ],
+      participations: [
+        played(1, 1, 8.0, 1, 0),
+        played(3, 2, 9.0, 3, 0),
+        played(3, 3, 7.0, 1, 0),
+      ],
+    });
+
+    expect(renderNightSummary(summary, name)).toBe(
+      "1 partida: 1 vitória, 0 empates e 0 derrotas. " +
+        "2 gols marcados e 1 sofrido. " +
+        "Torneio de Rush, 2 partidas: 1 vitória, 0 empates e 1 derrota. " +
+        "6 gols marcados e 5 sofridos. " +
+        "Artilheiro: Ericky (1 gol). " +
+        "Craque da Noite: Ericky (média 8,00). " +
+        "Destaque do Rush: Felp (média 8,00).",
+    );
+  });
+
+  it("noite só com Rush não fala de partidas principais", () => {
+    const summary = summarizeNight({
+      matches: [match(1, 3, 0, "W", false, "rush")],
+      participations: [played(3, 1, 9.0, 2, 0)],
+    });
+
+    expect(renderNightSummary(summary, name)).toBe(
+      "Torneio de Rush, 1 partida: 1 vitória, 0 empates e 0 derrotas. " +
+        "3 gols marcados e 0 sofridos. " +
+        "Destaque do Rush: Felp (média 9,00).",
     );
   });
 });

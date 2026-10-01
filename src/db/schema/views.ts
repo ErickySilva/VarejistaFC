@@ -9,7 +9,8 @@ import {
 } from "drizzle-orm/pg-core";
 import { matchTypeEnum, positionEnum } from "./enums";
 
-// As views são criadas por SQL em migrations/0001_triggers_and_views.sql.
+// As views são criadas por SQL (a versão vigente está em
+// migrations/0004_types_seasons_fifa.sql).
 // `.existing()` só descreve as colunas para consultas tipadas; o drizzle-kit
 // não gera nem altera estas views.
 
@@ -23,7 +24,7 @@ export const playerMatchView = pgView("v_player_match", {
   sequence: integer("sequence").notNull(),
   playedAt: timestamp("played_at", { withTimezone: true }).notNull(),
   opponentId: integer("opponent_id").notNull(),
-  matchType: matchTypeEnum("match_type"),
+  matchType: matchTypeEnum("match_type").notNull(),
   goalsFor: integer("goals_for").notNull(),
   goalsAgainst: integer("goals_against").notNull(),
   wentToPenalties: boolean("went_to_penalties").notNull(),
@@ -43,6 +44,40 @@ export const playerMatchView = pgView("v_player_match", {
   penaltiesSaved: integer("penalties_saved"),
   goalsConceded: integer("goals_conceded"),
   cleanSheet: boolean("clean_sheet").notNull(),
+  // Recorte de estatísticas: "main" (X1 e Partida) ou "rush".
+  statsScope: text("stats_scope").$type<"main" | "rush">().notNull(),
+  // Nota FIFA, informada à mão; nula quando não informada.
+  fifaRating: numeric("fifa_rating", {
+    precision: 3,
+    scale: 1,
+    mode: "number",
+  }),
+}).existing();
+
+// Totais do sistema por jogador, temporada e recorte. As somas de nota são
+// expostas para que as médias sejam calculadas sobre o período escolhido.
+export const playerPeriodTotalsView = pgView("v_player_period_totals", {
+  playerId: integer("player_id").notNull(),
+  seasonId: integer("season_id").notNull(),
+  statsScope: text("stats_scope").$type<"main" | "rush">().notNull(),
+  matches: integer("matches").notNull(),
+  goals: integer("goals").notNull(),
+  assists: integer("assists").notNull(),
+  goalContributions: integer("goal_contributions").notNull(),
+  wins: integer("wins").notNull(),
+  draws: integer("draws").notNull(),
+  losses: integer("losses").notNull(),
+  ratingSum: numeric("rating_sum", { mode: "number" }).notNull(),
+  fifaRatedMatches: integer("fifa_rated_matches").notNull(),
+  fifaRatingSum: numeric("fifa_rating_sum", { mode: "number" }).notNull(),
+  goalkeeperMatches: integer("goalkeeper_matches").notNull(),
+  saves: integer("saves").notNull(),
+  penaltiesSaved: integer("penalties_saved").notNull(),
+  goalsConceded: integer("goals_conceded").notNull(),
+  cleanSheets: integer("clean_sheets").notNull(),
+  goalkeeperRatingSum: numeric("goalkeeper_rating_sum", {
+    mode: "number",
+  }).notNull(),
 }).existing();
 
 export const playerTotalsSystemView = pgView("v_player_totals_system", {

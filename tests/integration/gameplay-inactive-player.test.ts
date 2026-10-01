@@ -45,13 +45,14 @@ function line(playerId: number, goals = 0, assists = 0): ParticipationEntry {
     assists,
     saves: null,
     penaltiesSaved: null,
+    fifaRating: null,
   };
 }
 
 function matchInput(participations: ParticipationEntry[]): MatchInput {
   return {
     opponentName: "Rivais FC",
-    matchType: null,
+    matchType: "match",
     goalsFor: 3,
     goalsAgainst: 1,
     wentToPenalties: false,
@@ -80,8 +81,8 @@ const ids = (players: { id: number }[]) => players.map((player) => player.id);
 beforeEach(async () => {
   await resetDatabase(sql);
   await sql`
-    insert into seasons (slug, name, game_edition, starts_on)
-    values ('fc-26', 'FC 26', 'FC 26', '2026-06-06')`;
+    insert into seasons (slug, name, game_edition, starts_on, is_active)
+    values ('fc-26', 'FC 26', 'FC 26', '2026-06-06', true)`;
   ericky = await insertPlayer("Ericky", 7);
   lucao = await insertPlayer("Lucão", 10);
   felp = await insertPlayer("Felp", 11);

@@ -8,6 +8,11 @@ import {
   type ParticipationEntry,
 } from "@/domain/match-entry";
 import {
+  MATCH_TYPE_LABEL,
+  MATCH_TYPES,
+  type MatchType,
+} from "@/domain/match-type";
+import {
   isGoalkeeper,
   POSITION_LABEL,
   POSITIONS,
@@ -17,14 +22,13 @@ import { registerMatch, updateMatch } from "@/server/actions/gameplay-actions";
 import type { MatchInputValues } from "@/server/actions/gameplay-schemas";
 import type { RosterPlayer } from "@/server/players/queries";
 
-type MatchType = NonNullable<MatchInputValues["matchType"]>;
-
-const MATCH_TYPE_LABEL: Record<MatchType, string> = {
-  league: "Liga",
-  playoff: "Playoff",
-  tournament: "Torneio",
-  friendly: "Amistoso",
-};
+// Texto digitado da Nota FIFA → número, aceitando vírgula. Vazio é "não
+// informada"; texto que não é número vira NaN e é recusado pela validação.
+function parseFifaRating(text: string): number | null {
+  const trimmed = text.trim();
+  if (trimmed === "") return null;
+  return Number(trimmed.replace(",", "."));
+}
 
 const fieldClass =
   "border-foreground/20 w-full rounded border bg-transparent px-3 py-2 text-base";
@@ -85,6 +89,8 @@ interface PlayerStats {
   assists: number;
   saves: number;
   penaltiesSaved: number;
+  // Como foi digitada; vazia quando não informada.
+  fifaRating: string;
 }
 
 export interface MatchFormProps {
@@ -106,6 +112,10 @@ function initialSelection(
         assists: participation.assists,
         saves: participation.saves ?? 0,
         penaltiesSaved: participation.penaltiesSaved ?? 0,
+        fifaRating:
+          participation.fifaRating === null
+            ? ""
+            : participation.fifaRating.toFixed(1).replace(".", ","),
       },
     ]),
   );
@@ -118,8 +128,8 @@ export function MatchForm({ players, opponentNames, initial }: MatchFormProps) {
   const [serverError, setServerError] = useState<string | null>(null);
 
   const [opponentName, setOpponentName] = useState(initial?.opponentName ?? "");
-  const [matchType, setMatchType] = useState<MatchType | "">(
-    initial?.matchType ?? "",
+  const [matchType, setMatchType] = useState<MatchType>(
+    initial?.matchType ?? "match",
   );
   const [goalsFor, setGoalsFor] = useState(initial?.goalsFor ?? 0);
   const [goalsAgainst, setGoalsAgainst] = useState(initial?.goalsAgainst ?? 0);
@@ -150,6 +160,7 @@ export function MatchForm({ players, opponentNames, initial }: MatchFormProps) {
             assists: stats.assists,
             saves: goalkeeper ? stats.saves : null,
             penaltiesSaved: goalkeeper ? stats.penaltiesSaved : null,
+            fifaRating: parseFifaRating(stats.fifaRating),
           };
         }),
     [players, selection],
@@ -157,7 +168,7 @@ export function MatchForm({ players, opponentNames, initial }: MatchFormProps) {
 
   const values: MatchInputValues = {
     opponentName,
-    matchType: matchType || null,
+    matchType,
     goalsFor,
     goalsAgainst,
     wentToPenalties: wentToPenalties && isDraw,
@@ -183,6 +194,7 @@ export function MatchForm({ players, opponentNames, initial }: MatchFormProps) {
           assists: 0,
           saves: 0,
           penaltiesSaved: 0,
+          fifaRating: "",
         });
       }
       return next;
@@ -216,6 +228,33 @@ export function MatchForm({ players, opponentNames, initial }: MatchFormProps) {
   if (step === 1) {
     return (
       <div className="flex flex-col gap-5">
+        <fieldset>
+          <legend className="mb-2 text-sm font-medium">Tipo de partida</legend>
+          <div className="grid grid-cols-3 gap-2">
+            {MATCH_TYPES.map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setMatchType(type)}
+                aria-pressed={matchType === type}
+                className={`min-h-11 rounded border px-2 py-2 text-sm font-medium ${
+                  matchType === type
+                    ? "bg-foreground text-background border-foreground"
+                    : "border-foreground/20"
+                }`}
+              >
+                {MATCH_TYPE_LABEL[type]}
+              </button>
+            ))}
+          </div>
+          {matchType === "rush" && (
+            <p className="mt-2 text-xs opacity-70">
+              O Rush é registrado normalmente, mas fica fora das estatísticas
+              principais e tem as suas próprias.
+            </p>
+          )}
+        </fieldset>
+
         <label className="flex flex-col gap-1 text-sm">
           Adversário
           <input
@@ -279,24 +318,6 @@ export function MatchForm({ players, opponentNames, initial }: MatchFormProps) {
           </fieldset>
         )}
 
-        <label className="flex flex-col gap-1 text-sm">
-          Tipo de partida (opcional)
-          <select
-            className={fieldClass}
-            value={matchType}
-            onChange={(event) =>
-              setMatchType(event.target.value as MatchType | "")
-            }
-          >
-            <option value="">Não informar</option>
-            {Object.entries(MATCH_TYPE_LABEL).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-
         {scoreIssues.map((issue) => (
           <p key={issue.code} role="alert" className="text-sm text-red-600">
             {issue.message}
@@ -318,6 +339,7 @@ export function MatchForm({ players, opponentNames, initial }: MatchFormProps) {
   return (
     <div className="flex flex-col gap-5">
       <p className="text-sm">
+        <span className="opacity-70">{MATCH_TYPE_LABEL[matchType]} · </span>
         Varejista FC{" "}
         <strong className="tabular-nums">
           {goalsFor} × {goalsAgainst}
@@ -412,6 +434,27 @@ export function MatchForm({ players, opponentNames, initial }: MatchFormProps) {
                       </p>
                     </>
                   )}
+                  <label className="flex items-center justify-between gap-3 text-sm">
+                    <span>
+                      Nota FIFA <span className="opacity-70">(opcional)</span>
+                    </span>
+                    <input
+                      className={`${fieldClass} w-24 text-center tabular-nums`}
+                      value={stats.fifaRating}
+                      onChange={(event) =>
+                        updatePlayer(player.id, {
+                          fifaRating: event.target.value,
+                        })
+                      }
+                      inputMode="decimal"
+                      maxLength={4}
+                      placeholder="7,5"
+                      aria-label={`Nota FIFA de ${player.name}`}
+                    />
+                  </label>
+                  <p className="text-xs opacity-70">
+                    A Nota VFC é calculada pelo sistema ao salvar.
+                  </p>
                   {issue && (
                     <p role="alert" className="text-sm text-red-600">
                       {issue.message}
