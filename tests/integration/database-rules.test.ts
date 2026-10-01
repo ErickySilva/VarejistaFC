@@ -1,5 +1,6 @@
 import postgres from "postgres";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { resetDatabase } from "./reset-database";
 import { getTestDatabaseUrl } from "./test-database";
 
 const sql = postgres(getTestDatabaseUrl(), { max: 4, onnotice: () => {} });
@@ -139,11 +140,7 @@ const UNIQUE_VIOLATION = "23505";
 const INSUFFICIENT_PRIVILEGE = "42501";
 
 beforeEach(async () => {
-  // audit_log fica de fora: o TRUNCATE nela é bloqueado por gatilho.
-  await sql`
-    truncate match_players, nickname_assignments, night_awards, matches,
-      nights, seasons, opponents, nicknames, legacy_stats, players
-    restart identity cascade`;
+  await resetDatabase(sql);
 
   const [season] = await sql`
     insert into seasons (slug, name, game_edition, starts_on)

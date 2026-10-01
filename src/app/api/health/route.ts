@@ -1,16 +1,10 @@
-import { sql } from "drizzle-orm";
-import { getDb } from "@/db";
+import { isDatabaseUp } from "@/server/health";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  try {
-    await getDb().execute(sql`select 1`);
+  if (await isDatabaseUp()) {
     return Response.json({ status: "ok", database: "up" });
-  } catch {
-    return Response.json(
-      { status: "error", database: "down" },
-      { status: 503 },
-    );
   }
+  return Response.json({ status: "error", database: "down" }, { status: 503 });
 }

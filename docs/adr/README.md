@@ -15,5 +15,6 @@ Uma decisão só muda com um novo ADR que substitua o anterior.
 | [0008](0008-premios-da-noite.md)                  | Prêmios da noite e critério do craque                    | Aceita |
 | [0009](0009-postgres-drizzle.md)                  | PostgreSQL com Drizzle ORM                               | Aceita |
 | [0010](0010-nota-versionada.md)                   | Nota da partida com fórmula versionada                   | Aceita |
+| [0011](0011-autenticacao-e-autorizacao.md)        | Autenticação e autorização com Better Auth               | Aceita |
 
 A fórmula da nota vigente é a `v1`, em [../nota-v1.md](../nota-v1.md).

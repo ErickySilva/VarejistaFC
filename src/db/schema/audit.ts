@@ -6,6 +6,7 @@ import {
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
+import { users } from "./auth";
 import { auditActionEnum } from "./enums";
 
 // Gravado na mesma transação da alteração e nunca editado (ADR 0006).
@@ -18,8 +19,9 @@ export const auditLog = pgTable(
     occurredAt: timestamp("occurred_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    // A chave estrangeira para a tabela de usuários entra na fase de autenticação.
-    actorUserId: text("actor_user_id"),
+    // Nulo significa ação do sistema (seed, scripts). Sem cascata: um usuário
+    // com histórico de auditoria não pode ser apagado, só desativado.
+    actorUserId: text("actor_user_id").references(() => users.id),
     action: auditActionEnum("action").notNull(),
     entity: text("entity").notNull(),
     entityId: text("entity_id").notNull(),

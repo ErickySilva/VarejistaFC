@@ -2,6 +2,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { seed } from "@/db/seed/seed";
+import { resetDatabase } from "./reset-database";
 import { getTestDatabaseUrl } from "./test-database";
 
 const sql = postgres(getTestDatabaseUrl(), { max: 2, onnotice: () => {} });
@@ -13,10 +14,7 @@ async function count(table: string): Promise<number> {
 }
 
 beforeEach(async () => {
-  await sql`
-    truncate match_players, nickname_assignments, night_awards, matches,
-      nights, seasons, opponents, nicknames, legacy_stats, players
-    restart identity cascade`;
+  await resetDatabase(sql);
 });
 
 afterAll(async () => {

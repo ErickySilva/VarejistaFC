@@ -40,6 +40,34 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  {
+    // Páginas e componentes só falam com o banco e com a autenticação através
+    // de src/server, onde a autorização é conferida (ADR 0011).
+    files: ["src/app/**", "src/components/**"],
+    ignores: ["src/app/api/auth/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "@/db",
+                "@/db/**",
+                "drizzle-orm",
+                "drizzle-orm/**",
+                "postgres",
+                "better-auth",
+                "better-auth/**",
+              ],
+              message:
+                "Use as funções de src/server em vez de acessar o banco ou o Better Auth diretamente.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

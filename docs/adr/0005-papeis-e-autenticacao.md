@@ -15,7 +15,9 @@
 - Apelidos (ex.: OLISO, EL GARRÓ) são atribuídos manualmente por um `admin`
   a uma partida ou a uma noite. O sistema nunca escolhe apelido.
 
-## Em aberto
+## Implementação
 
-A biblioteca de autenticação será fixada na fase de autenticação. A candidata é
-Better Auth, com credenciais e sessão no banco.
+A biblioteca, as tabelas, a tabela de autorização e as proteções estão no
+[ADR 0011](0011-autenticacao-e-autorizacao.md). Um ajuste em relação ao texto
+acima: no próprio perfil, o `player` altera somente a foto do jogador
+vinculado à sua conta; nome, número da camisa e posição padrão são de admin.
