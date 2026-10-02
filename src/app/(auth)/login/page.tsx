@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { EntryBackdrop } from "@/components/entry/backdrop";
+import { ArrowLeftIcon } from "@/components/ui/icons";
+import { BACK } from "@/components/ui/transitions";
 import { getActor } from "@/server/auth/session";
 import { LoginForm } from "./login-form";
 
@@ -10,19 +13,26 @@ export default async function LoginPage() {
   if (await getActor()) redirect("/");
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        <Link href="/entrar" className="text-sm underline">
+    <EntryBackdrop quiet>
+      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col px-4 py-5">
+        <Link
+          href="/entrar"
+          transitionTypes={BACK}
+          className="text-soft hover:text-fg -ml-1 inline-flex min-h-11 items-center gap-1.5 self-start px-1 text-sm font-medium transition-colors"
+        >
+          <ArrowLeftIcon className="h-4 w-4" />
           Voltar
         </Link>
-        <h1 className="mt-2 mb-1 text-2xl font-semibold tracking-tight">
-          Entrar com e-mail
-        </h1>
-        <p className="mb-6 text-sm opacity-70">
-          Para contas que não estão vinculadas a um jogador.
-        </p>
-        <LoginForm />
+        <div className="animate-rise flex flex-1 flex-col justify-center gap-6 pb-10">
+          <div>
+            <h1 className="display text-3xl">Entrar com e-mail</h1>
+            <p className="text-soft mt-1.5 text-sm">
+              Para contas que não estão vinculadas a um jogador.
+            </p>
+          </div>
+          <LoginForm />
+        </div>
       </div>
-    </main>
+    </EntryBackdrop>
   );
 }

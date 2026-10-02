@@ -38,8 +38,9 @@ function niceTicks(min: number, max: number, integers: boolean): number[] {
 }
 
 // Linha de tendência de uma única série. Uma série só dispensa legenda (o
-// título a nomeia) e usa a cor do texto: a identidade visual é provisória.
-// Todo valor do gráfico também está na tabela logo abaixo.
+// título a nomeia); a linha usa o acento e os textos, as cores de texto. A
+// linha se desenha ao entrar. Todo valor do gráfico também está na tabela logo
+// abaixo.
 export function TrendChart({
   title,
   points,
@@ -54,9 +55,9 @@ export function TrendChart({
 
   if (known.length < 2) {
     return (
-      <figure className="border-foreground/15 rounded border p-3">
-        <figcaption className="text-sm font-medium">{title}</figcaption>
-        <p className="mt-2 text-sm opacity-70">
+      <figure className="bg-surface rounded-lg p-4">
+        <figcaption className="text-sm font-semibold">{title}</figcaption>
+        <p className="text-muted mt-2 text-sm">
           {known.length === 0
             ? "Ainda não há dados para mostrar."
             : `Um único registro até agora: ${points[known[0].index].display}.`}
@@ -123,17 +124,17 @@ export function TrendChart({
   const activePoint = active === null ? null : points[active];
 
   return (
-    <figure className="border-foreground/15 rounded border p-3">
+    <figure className="bg-surface rounded-lg p-4">
       <figcaption className="flex items-baseline justify-between gap-3 text-sm">
-        <span className="font-medium">{title}</span>
+        <span className="font-semibold">{title}</span>
         <span className="tabular-nums" aria-live="polite">
           {activePoint ? (
             <>
               <strong>{activePoint.display}</strong>{" "}
-              <span className="opacity-70">{activePoint.label}</span>
+              <span className="text-muted">{activePoint.label}</span>
             </>
           ) : (
-            <span className="opacity-70">toque no gráfico</span>
+            <span className="text-muted text-xs">toque no gráfico</span>
           )}
         </span>
       </figcaption>
@@ -189,10 +190,14 @@ export function TrendChart({
             key={segment}
             points={segment}
             fill="none"
-            stroke="currentColor"
+            stroke="var(--color-accent)"
             strokeWidth={2}
             strokeLinejoin="round"
             strokeLinecap="round"
+            pathLength={1}
+            strokeDasharray={1}
+            className="animate-draw"
+            style={{ "--draw-length": 1 } as React.CSSProperties}
           />
         ))}
 
@@ -208,8 +213,8 @@ export function TrendChart({
               cx={x(index)}
               cy={y(points[index].value!)}
               r={4}
-              fill="currentColor"
-              stroke="var(--background)"
+              fill="var(--color-accent)"
+              stroke="var(--color-surface)"
               strokeWidth={2}
             />
           ))}
@@ -247,11 +252,13 @@ export function TrendChart({
       </svg>
 
       <details className="mt-1 text-sm">
-        <summary className="cursor-pointer opacity-70">Ver em tabela</summary>
+        <summary className="text-muted hover:text-fg inline-flex min-h-9 cursor-pointer items-center text-xs transition-colors">
+          Ver em tabela
+        </summary>
         <table className="mt-2 w-full">
           <tbody>
             {points.map((point) => (
-              <tr key={point.label} className="border-foreground/10 border-b">
+              <tr key={point.label} className="border-line/40 border-t">
                 <td className="py-1">{point.label}</td>
                 <td className="py-1 text-right tabular-nums">
                   {point.display}

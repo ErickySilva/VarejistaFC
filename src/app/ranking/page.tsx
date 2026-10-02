@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import {
+  Leaderboard,
+  type LeaderboardDetail,
+  type LeaderboardEntry,
+} from "@/components/ranking/leaderboard";
+import { EmptyState, Page, PageHeader } from "@/components/ui/layout";
 import { PeriodSwitcher } from "@/components/ui/period-switcher";
-import { PlayerAvatar } from "@/components/ui/player-avatar";
+import { LinkTabs } from "@/components/ui/tabs";
 import {
   hasGoalkeeperStats,
   RANKING_TAB_LABEL,
@@ -15,66 +20,99 @@ import { getPlayerStats, type PlayerStats } from "@/server/stats/queries";
 
 export const metadata: Metadata = { title: "Ranking" };
 
-const cell = "px-2 py-2 text-right tabular-nums";
-const head = "px-2 py-2 text-right font-medium";
-
-interface Column {
-  label: string;
-  title?: string;
-  value: (player: PlayerStats) => string | number;
-}
-
-const matches: Column = { label: "J", title: "Jogos", value: (p) => p.matches };
-const goals: Column = { label: "G", title: "Gols", value: (p) => p.goals };
-const assists: Column = {
+const matches = (p: PlayerStats): LeaderboardDetail => ({
+  label: "J",
+  title: "Jogos",
+  value: p.matches,
+});
+const goals = (p: PlayerStats): LeaderboardDetail => ({
+  label: "G",
+  title: "Gols",
+  value: p.goals,
+});
+const assists = (p: PlayerStats): LeaderboardDetail => ({
   label: "A",
   title: "Assistências",
-  value: (p) => p.assists,
-};
-const goalContributions: Column = {
-  label: "G/A",
-  value: (p) => p.goalContributions,
-};
-const rating: Column = {
+  value: p.assists,
+});
+const rating = (p: PlayerStats): LeaderboardDetail => ({
   label: "VFC",
   title: "Média da Nota VFC",
-  value: (p) => formatAverage(p.averageRating),
-};
-const rated: Column = {
-  label: "Aval.",
-  title: "Partidas avaliadas",
-  value: (p) => p.ratedMatches,
-};
+  value: formatAverage(p.averageRating),
+});
 
-// As colunas de goleiro só existem na aba Goleiros.
-const COLUMNS: Record<RankingTab, Column[]> = {
-  geral: [matches, goals, assists, goalContributions, rating],
-  gols: [matches, goals],
-  assistencias: [matches, assists],
-  ga: [matches, goalContributions],
-  nota: [rated, rating],
-  goleiros: [
-    {
-      label: "J",
-      title: "Partidas como goleiro",
-      value: (p) => p.goalkeeper.matches,
-    },
-    {
-      label: "VFC",
-      title: "Média da Nota VFC como goleiro",
-      value: (p) => formatAverage(p.goalkeeper.averageRating),
-    },
-    {
-      label: "Def/J",
-      title: "Defesas por partida",
-      value: (p) => formatAverage(p.goalkeeper.savesPerMatch),
-    },
-    {
-      label: "CS",
-      title: "Jogos sem sofrer gol",
-      value: (p) => p.goalkeeper.cleanSheets,
-    },
-  ],
+interface Board {
+  // Nome da métrica em destaque.
+  metric: string;
+  // Valor numérico da métrica; null quando o jogador não tem.
+  value: (player: PlayerStats) => number | null;
+  // Média (duas casas) em vez de contagem inteira.
+  average?: boolean;
+  // Scout em que o líder ganha a coroa sobre a foto.
+  crown?: boolean;
+  details: ((player: PlayerStats) => LeaderboardDetail)[];
+}
+
+// O que cada aba destaca e o que mostra de apoio. As colunas de goleiro só
+// existem na aba Goleiros.
+const BOARDS: Record<RankingTab, Board> = {
+  geral: {
+    metric: "G/A",
+    value: (p) => p.goalContributions,
+    details: [matches, goals, assists, rating],
+  },
+  gols: {
+    metric: "gols",
+    value: (p) => p.goals,
+    crown: true,
+    details: [matches],
+  },
+  assistencias: {
+    metric: "assistências",
+    value: (p) => p.assists,
+    crown: true,
+    details: [matches],
+  },
+  ga: {
+    metric: "G/A",
+    value: (p) => p.goalContributions,
+    crown: true,
+    details: [matches],
+  },
+  nota: {
+    metric: "média VFC",
+    value: (p) => p.averageRating,
+    average: true,
+    details: [
+      (p) => ({
+        label: "Aval.",
+        title: "Partidas avaliadas",
+        value: p.ratedMatches,
+      }),
+    ],
+  },
+  goleiros: {
+    metric: "média VFC no gol",
+    value: (p) => p.goalkeeper.averageRating,
+    average: true,
+    details: [
+      (p) => ({
+        label: "J",
+        title: "Partidas como goleiro",
+        value: p.goalkeeper.matches,
+      }),
+      (p) => ({
+        label: "Def/J",
+        title: "Defesas por partida",
+        value: formatAverage(p.goalkeeper.savesPerMatch),
+      }),
+      (p) => ({
+        label: "SG",
+        title: "Jogos sem sofrer gol",
+        value: p.goalkeeper.cleanSheets,
+      }),
+    ],
+  },
 };
 
 function isTab(value: unknown): value is RankingTab {
@@ -99,107 +137,71 @@ export default async function RankingPage({
       : player.isActive || player.matches > 0,
   );
   const ranking = rankPlayers(listed, tab);
-  const columns = COLUMNS[tab];
+
+  const board = BOARDS[tab];
+  // Coroa: só indicação visual de quem tem o maior valor do scout. Empatados
+  // no topo recebem todos; com todo mundo zerado, ninguém recebe. A ordem da
+  // lista não muda.
+  const best = board.crown
+    ? Math.max(0, ...ranking.map((player) => board.value(player) ?? 0))
+    : 0;
+  const entries: LeaderboardEntry[] = ranking.map((player) => {
+    const value = board.value(player);
+    return {
+      id: player.playerId,
+      slug: player.slug,
+      href: `/jogadores/${player.slug}?periodo=${selection.param}`,
+      name: player.name,
+      shirtNumber: player.shirtNumber,
+      photoUrl: player.photoUrl,
+      value: board.average ? formatAverage(value) : String(value ?? 0),
+      crowned: best > 0 && value === best,
+      details: board.details.map((detail) => detail(player)),
+    };
+  });
 
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-5 px-4 py-6">
-      <h1 className="text-2xl font-semibold tracking-tight">
-        Ranking do Varejista
-      </h1>
+    <Page>
+      <PageHeader title="Ranking do Varejista">
+        <PeriodSwitcher
+          selection={selection}
+          basePath="/ranking"
+          params={{ aba: tab }}
+        />
+      </PageHeader>
 
-      <PeriodSwitcher
-        selection={selection}
-        basePath="/ranking"
-        params={{ aba: tab }}
-      />
+      <div className="flex flex-col gap-4">
+        <LinkTabs
+          label="Rankings"
+          options={RANKING_TABS.map((option) => ({
+            href: `/ranking?aba=${option}&periodo=${selection.param}`,
+            label: RANKING_TAB_LABEL[option],
+            current: option === tab,
+          }))}
+        />
 
-      <nav aria-label="Rankings" className="flex flex-wrap gap-2">
-        {RANKING_TABS.map((option) => (
-          <Link
-            key={option}
-            href={`/ranking?aba=${option}&periodo=${selection.param}`}
-            aria-current={option === tab ? "page" : undefined}
-            className={`flex min-h-10 items-center rounded border px-3 text-sm ${
-              option === tab
-                ? "bg-foreground text-background border-foreground font-medium"
-                : "border-foreground/20"
-            }`}
-          >
-            {RANKING_TAB_LABEL[option]}
-          </Link>
-        ))}
-      </nav>
+        {entries.length === 0 ? (
+          <EmptyState
+            title={
+              tab === "goleiros"
+                ? "Ninguém jogou no gol neste período"
+                : "Nenhum jogador para listar neste período"
+            }
+          />
+        ) : (
+          <Leaderboard entries={entries} metric={board.metric} />
+        )}
 
-      {ranking.length === 0 ? (
-        <p className="text-sm opacity-70">
-          {tab === "goleiros"
-            ? "Ninguém jogou no gol neste período."
-            : "Nenhum jogador para listar neste período."}
+        <p className="text-muted text-xs">
+          {tab === "nota" &&
+            "Ordem: quantidade de partidas avaliadas, depois média da Nota VFC, G/A e gols. "}
+          {tab === "goleiros" &&
+            "Ordem: partidas no gol, depois média da Nota VFC. Conta só as partidas como goleiro registradas no sistema. "}
+          Considera X1 e Partida; o Torneio de Rush tem estatísticas próprias.
+          {selection.period.kind === "club" &&
+            " Inclui o histórico anterior ao sistema, que não tem Nota VFC."}
         </p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <caption className="sr-only">
-              Ranking {RANKING_TAB_LABEL[tab]}, {selection.label}
-            </caption>
-            <thead>
-              <tr className="border-foreground/15 border-b">
-                <th className="w-8 px-2 py-2 text-left font-medium">#</th>
-                <th className="px-2 py-2 text-left font-medium">Jogador</th>
-                {columns.map((column) => (
-                  <th key={column.label} className={head} title={column.title}>
-                    {column.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {ranking.map((player, index) => (
-                <tr
-                  key={player.playerId}
-                  className="border-foreground/10 border-b"
-                >
-                  <td className="px-2 py-2 tabular-nums">{index + 1}</td>
-                  <td className="px-2 py-2">
-                    <Link
-                      href={`/jogadores/${player.slug}?periodo=${selection.param}`}
-                      className="flex items-center gap-2"
-                    >
-                      <PlayerAvatar
-                        name={player.name}
-                        shirtNumber={player.shirtNumber}
-                        photoUrl={player.photoUrl}
-                        size="sm"
-                      />
-                      <span>
-                        {player.name}{" "}
-                        <span className="opacity-60">
-                          #{player.shirtNumber}
-                        </span>
-                      </span>
-                    </Link>
-                  </td>
-                  {columns.map((column) => (
-                    <td key={column.label} className={cell}>
-                      {column.value(player)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <p className="text-xs opacity-70">
-        {tab === "nota" &&
-          "Ordem: quantidade de partidas avaliadas, depois média da Nota VFC, G/A e gols. "}
-        {tab === "goleiros" &&
-          "Conta só as partidas como goleiro registradas no sistema. "}
-        Considera X1 e Partida; o Torneio de Rush tem estatísticas próprias.
-        {selection.period.kind === "club" &&
-          " Inclui o histórico anterior ao sistema, que não tem Nota VFC."}
-      </p>
-    </main>
+      </div>
+    </Page>
   );
 }

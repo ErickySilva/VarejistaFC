@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AccessDenied } from "@/components/access-denied";
 import { ActionButton } from "@/components/gameplay/action-button";
 import { MatchForm } from "@/components/gameplay/match-form";
+import { Page, PageHeader } from "@/components/ui/layout";
 import { deleteMatch } from "@/server/actions/gameplay-actions";
 import { getActorWithPermission } from "@/server/auth/page-access";
 import { getMatchDetail, getOpenNight } from "@/server/nights/queries";
@@ -38,18 +38,12 @@ export default async function EditMatchPage(
   ]);
 
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-5 px-4 py-6">
-      <div>
-        <Link href="/gameplay" className="text-sm underline">
-          Voltar para a gameplay
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-          Corrigir partida
-        </h1>
-        <p className="text-sm opacity-70">
-          As notas de todos os jogadores são recalculadas ao salvar.
-        </p>
-      </div>
+    <Page className="overflow-x-clip">
+      <PageHeader
+        title="Corrigir partida"
+        back={{ href: "/gameplay", label: "Gameplay" }}
+        description="As notas de todos os jogadores são recalculadas ao salvar."
+      />
 
       <MatchForm
         players={players}
@@ -75,16 +69,21 @@ export default async function EditMatchPage(
         }}
       />
 
-      <div className="border-foreground/15 border-t pt-5">
+      <div className="border-line/50 border-t pt-6">
         <ActionButton
           action={deleteMatch.bind(null, { matchId: match.id })}
           label="Excluir esta partida"
-          pendingLabel="Excluindo..."
-          confirmMessage="Excluir esta partida? Ela sai das estatísticas da noite."
+          pendingLabel="Excluindo"
           variant="danger"
+          size="md"
           redirectTo="/gameplay"
+          confirm={{
+            title: "Excluir esta partida?",
+            message: "Ela sai das estatísticas da noite.",
+            confirmLabel: "Excluir partida",
+          }}
         />
       </div>
-    </main>
+    </Page>
   );
 }

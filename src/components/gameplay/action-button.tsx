@@ -3,12 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { ActionResult } from "@/server/actions/action";
-
-const VARIANTS = {
-  primary: "bg-foreground text-background",
-  secondary: "border-foreground/20 border",
-  danger: "border border-red-600/40 text-red-600",
-};
+import { Button, type ButtonSize, type ButtonVariant } from "../ui/button";
+import { ConfirmDialog } from "../ui/dialog";
 
 interface ActionButtonProps {
   // Server Action sem argumentos (ou já com o argumento fixado por `bind`).
@@ -16,27 +12,30 @@ interface ActionButtonProps {
   label: string;
   pendingLabel: string;
   // Se informado, pede confirmação antes de executar.
-  confirmMessage?: string;
-  variant?: keyof typeof VARIANTS;
+  confirm?: { title: string; message: string; confirmLabel: string };
+  variant?: ButtonVariant;
+  size?: ButtonSize;
   // Para onde ir depois de dar certo; sem isso, a página atual é atualizada.
   redirectTo?: string;
+  className?: string;
 }
 
 export function ActionButton({
   action,
   label,
   pendingLabel,
-  confirmMessage,
+  confirm,
   variant = "primary",
+  size = "lg",
   redirectTo,
+  className = "",
 }: ActionButtonProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
 
-  function handleClick() {
-    if (confirmMessage && !window.confirm(confirmMessage)) return;
-
+  function run() {
     setError(null);
     startTransition(async () => {
       const result = await action();
@@ -44,25 +43,43 @@ export function ActionButton({
         setError(result.error.message);
         return;
       }
+      setAsking(false);
       if (redirectTo) router.push(redirectTo);
       else router.refresh();
     });
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <button
-        type="button"
-        onClick={handleClick}
-        disabled={pending}
-        className={`min-h-12 rounded px-4 py-3 text-base font-medium disabled:opacity-60 ${VARIANTS[variant]}`}
+    <div className={`flex flex-col gap-2 ${className}`}>
+      <Button
+        variant={variant}
+        size={size}
+        loading={pending && !confirm}
+        onClick={() => (confirm ? setAsking(true) : run())}
       >
-        {pending ? pendingLabel : label}
-      </button>
-      {error && (
-        <p role="alert" className="text-sm text-red-600">
+        {pending && !confirm ? pendingLabel : label}
+      </Button>
+      {error && !asking && (
+        <p role="alert" className="text-loss text-sm">
           {error}
         </p>
+      )}
+      {confirm && (
+        <ConfirmDialog
+          open={asking}
+          title={confirm.title}
+          confirmLabel={pending ? pendingLabel : confirm.confirmLabel}
+          tone={variant === "danger" ? "danger" : "primary"}
+          pending={pending}
+          error={error}
+          onConfirm={run}
+          onClose={() => {
+            setAsking(false);
+            setError(null);
+          }}
+        >
+          {confirm.message}
+        </ConfirmDialog>
       )}
     </div>
   );

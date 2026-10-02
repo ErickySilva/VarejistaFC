@@ -2,6 +2,8 @@
 
 import { useActionState } from "react";
 import { signInAsPlayerWithForm } from "@/server/actions/auth-actions";
+import { Button } from "../ui/button";
+import { Field, Input } from "../ui/field";
 
 interface PlayerLoginFormProps {
   playerSlug: string;
@@ -38,31 +40,28 @@ export function PlayerLoginForm({
         hidden
       />
 
-      <label className="flex flex-col gap-1 text-sm">
-        Senha de {playerName}
-        <input
-          className="border-foreground/20 w-full rounded border bg-transparent px-3 py-3 text-base"
+      <Field
+        label={`Senha de ${playerName}`}
+        error={
+          error
+            ? (error.fieldErrors?.password?.[0] ?? error.message)
+            : undefined
+        }
+      >
+        <Input
           type="password"
           name="password"
           autoComplete="current-password"
           autoFocus
           required
+          aria-invalid={error ? true : undefined}
+          className="min-h-13"
         />
-      </label>
+      </Field>
 
-      {error && (
-        <p role="alert" className="text-sm text-red-600">
-          {error.fieldErrors?.password?.[0] ?? error.message}
-        </p>
-      )}
-
-      <button
-        type="submit"
-        disabled={pending}
-        className="bg-foreground text-background min-h-12 rounded px-4 py-3 font-medium disabled:opacity-60"
-      >
-        {pending ? "Entrando..." : "Entrar"}
-      </button>
+      <Button type="submit" variant="primary" size="lg" loading={pending}>
+        {pending ? "Entrando" : "Entrar"}
+      </Button>
     </form>
   );
 }

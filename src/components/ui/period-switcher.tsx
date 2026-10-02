@@ -1,9 +1,9 @@
-import Link from "next/link";
 import {
   CLUB_PERIOD_LABEL,
   CLUB_PERIOD_PARAM,
   type PeriodSelection,
 } from "@/server/stats/period";
+import { LinkTabs } from "./tabs";
 
 interface PeriodSwitcherProps {
   selection: PeriodSelection;
@@ -19,14 +19,6 @@ export function PeriodSwitcher({
   basePath,
   params = {},
 }: PeriodSwitcherProps) {
-  const options = [
-    ...selection.seasons.map((season) => ({
-      param: season.slug,
-      label: season.isActive ? `Temporada ${season.name}` : season.name,
-    })),
-    { param: CLUB_PERIOD_PARAM, label: CLUB_PERIOD_LABEL },
-  ];
-
   const hrefFor = (periodo: string) => {
     const query = new URLSearchParams();
     for (const [key, value] of Object.entries(params)) {
@@ -36,25 +28,17 @@ export function PeriodSwitcher({
     return `${basePath}?${query}`;
   };
 
-  return (
-    <nav aria-label="Período" className="flex flex-wrap gap-2">
-      {options.map((option) => {
-        const current = option.param === selection.param;
-        return (
-          <Link
-            key={option.param}
-            href={hrefFor(option.param)}
-            aria-current={current ? "page" : undefined}
-            className={`flex min-h-10 items-center rounded-full border px-3 text-sm ${
-              current
-                ? "bg-foreground text-background border-foreground font-medium"
-                : "border-foreground/20"
-            }`}
-          >
-            {option.label}
-          </Link>
-        );
-      })}
-    </nav>
-  );
+  const options = [
+    ...selection.seasons.map((season) => ({
+      param: season.slug,
+      label: season.isActive ? `Temporada ${season.name}` : season.name,
+    })),
+    { param: CLUB_PERIOD_PARAM, label: CLUB_PERIOD_LABEL },
+  ].map((option) => ({
+    href: hrefFor(option.param),
+    label: option.label,
+    current: option.param === selection.param,
+  }));
+
+  return <LinkTabs label="Período" options={options} variant="quiet" />;
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { AccessDenied } from "@/components/access-denied";
 import { AccountsManager } from "@/components/admin/accounts-manager";
+import { Page, PageHeader } from "@/components/ui/layout";
 import { getActorWithPermission } from "@/server/auth/page-access";
 import { requireContext } from "@/server/auth/session";
 import { listActivePlayers } from "@/server/players/queries";
@@ -20,19 +20,12 @@ export default async function AccountsPage() {
   ]);
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-5 px-4 py-6">
-      <div>
-        <Link href="/admin" className="text-sm underline">
-          Admin
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-          Contas e permissões
-        </h1>
-        <p className="text-sm opacity-70">
-          Cada conta entra pelo tile do jogador a que está vinculada. Só
-          administradores acessam esta área.
-        </p>
-      </div>
+    <Page width="wide">
+      <PageHeader
+        title="Contas e permissões"
+        back={{ href: "/admin", label: "Admin" }}
+        description="Cada conta entra pelo retrato do jogador a que está vinculada. Só administradores acessam esta área."
+      />
 
       <AccountsManager
         accounts={accounts}
@@ -40,9 +33,10 @@ export default async function AccountsPage() {
           id: player.id,
           name: player.name,
           shirtNumber: player.shirtNumber,
+          photoUrl: player.photoUrl,
         }))}
         currentUserId={actor.userId}
       />
-    </main>
+    </Page>
   );
 }

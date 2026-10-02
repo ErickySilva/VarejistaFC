@@ -1,359 +1,323 @@
 import Link from "next/link";
-import { MATCH_TYPE_LABEL } from "@/domain/match-type";
 import {
   AWARD_LABEL,
   type AwardType,
-  type NightGoalkeeperSummary,
   type NightScopeSummary,
-  type NightSummary,
 } from "@/domain/night";
-import { formatReferenceDate } from "@/domain/reference-date";
-import { formatDateTime, formatRating } from "@/lib/format";
+import { formatRating } from "@/lib/format";
 import type { MatchDetail, NightDetail } from "@/server/nights/queries";
+import type { PlayerLink } from "@/server/players/directory";
 import type { OverallRankingRow } from "@/server/players/queries";
-import { ResultBadge } from "../matches/match-row";
+import { Score } from "../matches/match-row";
+import { ResultMark } from "../ui/badge";
+import { FlashValue } from "../ui/flash-value";
+import { AssistIcon, BallIcon, GloveIcon } from "../ui/icons";
+import { PlayerAvatar } from "../ui/player-avatar";
+import { Table, Td, Th, Tr } from "../ui/table";
+import { FORWARD, ListItemTransition } from "../ui/transitions";
 
 // Componentes de exibição da gameplay. Não buscam dados nem calculam nada:
 // recebem o que a página já carregou.
 
-export function formatAwardValue(award: AwardType, value: number): string {
-  if (award === "mvp" || award === "rush_mvp") {
-    return `média ${formatRating(value, 2)}`;
+export interface NightPlayerInfo {
+  name: string;
+  shirtNumber: number;
+  photoUrl: string | null;
+  slug: string | null;
+}
+
+export type PlayerLookup = (playerId: number) => NightPlayerInfo;
+
+// Junta o nome e o número (que vêm das participações) com a foto e o perfil.
+export function playerLookup(
+  night: NightDetail,
+  photos: Map<number, PlayerLink>,
+): PlayerLookup {
+  const players = new Map<number, NightPlayerInfo>();
+  for (const match of night.matches) {
+    for (const participation of match.participations) {
+      const link = photos.get(participation.playerId);
+      players.set(participation.playerId, {
+        name: participation.playerName,
+        shirtNumber: participation.shirtNumber,
+        photoUrl: link?.photoUrl ?? null,
+        slug: link?.slug ?? null,
+      });
+    }
   }
-  return String(value);
+  return (playerId) =>
+    players.get(playerId) ?? {
+      name: `Jogador ${playerId}`,
+      shirtNumber: 0,
+      photoUrl: null,
+      slug: null,
+    };
 }
 
-const cellClass = "px-2 py-2 text-right tabular-nums";
-const headClass = "px-2 py-2 text-right font-medium";
-
-function scopeLine(scope: NightScopeSummary): string {
-  return `${scope.matchCount} ${scope.matchCount === 1 ? "partida" : "partidas"} · ${scope.wins}V ${scope.draws}E ${scope.losses}D · gols ${scope.goalsFor}–${scope.goalsAgainst}`;
+export function nightPlayerIds(night: NightDetail): number[] {
+  return [
+    ...new Set(
+      night.matches.flatMap((match) =>
+        match.participations.map((participation) => participation.playerId),
+      ),
+    ),
+  ];
 }
 
-export function NightHeader({
-  night,
-  summary,
-}: {
-  night: NightDetail;
-  summary: NightSummary;
-}) {
-  return (
-    <header className="flex flex-col gap-1">
-      <p className="text-sm opacity-70">
-        {night.status === "open"
-          ? "Gameplay em andamento"
-          : "Gameplay encerrada"}
-      </p>
-      <h2 className="text-xl font-semibold tracking-tight">
-        {formatReferenceDate(night.referenceDate)}
-      </h2>
-      <p className="text-xs opacity-70">
-        Início: {formatDateTime(night.startedAt)}
-        {night.closedAt && ` · Encerrada: ${formatDateTime(night.closedAt)}`}
-      </p>
-      <p className="text-sm tabular-nums">{scopeLine(summary.main)}</p>
-      {summary.rush.matchCount > 0 && (
-        <p className="text-sm tabular-nums opacity-80">
-          Torneio de Rush: {scopeLine(summary.rush)}
-        </p>
-      )}
-    </header>
-  );
-}
-
-function MatchCard({
-  match,
-  order,
-  editable,
-}: {
-  match: MatchDetail;
-  order: number;
-  editable: boolean;
-}) {
-  return (
-    <li className="border-foreground/15 rounded border p-3">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs opacity-70">
-            Partida {order} · {MATCH_TYPE_LABEL[match.matchType]}
-          </p>
-          <p className="font-medium">
-            Varejista FC{" "}
-            <span className="tabular-nums">
-              {match.goalsFor} × {match.goalsAgainst}
-            </span>{" "}
-            {match.opponentName}
-          </p>
-          {match.wentToPenalties && (
-            <p className="text-xs opacity-70">
-              Decidida nos pênaltis: {match.penaltyScoreFor} ×{" "}
-              {match.penaltyScoreAgainst}
-            </p>
-          )}
-        </div>
-        <ResultBadge
-          result={match.result}
-          wentToPenalties={match.wentToPenalties}
-        />
-      </div>
-
-      <ul className="mt-3 flex flex-col gap-2 text-sm">
-        {match.participations.map((participation) => (
-          <li
-            key={participation.playerId}
-            className="flex justify-between gap-3"
-          >
-            <span>
-              {participation.playerName}{" "}
-              <span className="opacity-60">{participation.position}</span>
-            </span>
-            <span className="text-right tabular-nums">
-              {participation.goals}G {participation.assists}A
-              {participation.saves !== null && ` · ${participation.saves} def`}
-              {participation.penaltiesSaved
-                ? ` (${participation.penaltiesSaved} pên.)`
-                : ""}
-              <br />
-              <span className="opacity-70">VFC</span>{" "}
-              <strong>{formatRating(participation.rating)}</strong>
-              {participation.fifaRating !== null && (
-                <>
-                  {" "}
-                  · <span className="opacity-70">FIFA</span>{" "}
-                  {formatRating(participation.fifaRating)}
-                </>
-              )}
-            </span>
-          </li>
-        ))}
-      </ul>
-
-      <div className="mt-3 flex flex-wrap gap-x-4">
-        <Link
-          href={`/partidas/${match.id}`}
-          className="inline-flex min-h-11 items-center text-sm underline"
-        >
-          Ver partida
-        </Link>
-        {editable && (
-          <Link
-            href={`/gameplay/partida/${match.id}`}
-            className="inline-flex min-h-11 items-center text-sm underline"
-          >
-            Corrigir ou excluir
-          </Link>
-        )}
-      </div>
-    </li>
-  );
-}
-
-export function MatchList({
-  matches,
-  editable,
-}: {
-  matches: MatchDetail[];
-  editable: boolean;
-}) {
+// Fita de partidas da noite: um selo por partida, na ordem em que foram
+// jogadas. Rola na horizontal; a partida nova entra no fim.
+export function MatchStrip({ matches }: { matches: MatchDetail[] }) {
   if (matches.length === 0) {
     return (
-      <p className="text-sm opacity-70">Nenhuma partida registrada ainda.</p>
+      <p className="text-muted text-sm">Nenhuma partida registrada ainda.</p>
     );
   }
   return (
-    <ol className="flex flex-col gap-3">
-      {matches.map((match, index) => (
-        <MatchCard
-          key={match.id}
-          match={match}
-          order={index + 1}
-          editable={editable}
-        />
+    // "relative": o texto para leitor de tela dentro dos selos é posicionado
+    // de forma absoluta; sem isto ele escapa da rolagem e alarga a página.
+    <ol className="relative -mx-4 flex snap-x [scrollbar-width:none] gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
+      {matches.map((match) => (
+        <ListItemTransition key={match.id}>
+          <li className="shrink-0 snap-start">
+            <Link
+              href={`/partidas/${match.id}`}
+              transitionTypes={FORWARD}
+              className="bg-raised/70 hover:bg-raised flex items-center gap-2.5 rounded-md py-2 pr-3 pl-2 transition-[background-color,transform] active:scale-[0.97]"
+            >
+              <ResultMark
+                result={match.result}
+                wentToPenalties={match.wentToPenalties}
+              />
+              <span className="flex flex-col">
+                <Score
+                  goalsFor={match.goalsFor}
+                  goalsAgainst={match.goalsAgainst}
+                  className="text-lg"
+                />
+                <span className="text-muted max-w-28 truncate text-xs">
+                  {match.opponentName}
+                </span>
+              </span>
+            </Link>
+          </li>
+        </ListItemTransition>
       ))}
     </ol>
   );
 }
 
-// Tabela de jogadores de um recorte da noite (principais ou Rush). As colunas
-// de goleiro ficam em um bloco próprio, para não poluir esta tabela.
-export function NightStandings({
-  title,
-  note,
-  scope,
-  playerName,
+function Count({
+  icon,
+  label,
+  value,
 }: {
-  title: string;
-  note?: string;
-  scope: NightScopeSummary;
-  playerName: (playerId: number) => string;
+  icon: React.ReactNode;
+  label: string;
+  value: number;
 }) {
-  if (scope.players.length === 0) return null;
   return (
-    <section>
-      <h3 className="mb-1 font-semibold">{title}</h3>
-      {note && <p className="mb-2 text-xs opacity-70">{note}</p>}
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-foreground/15 border-b">
-              <th className="px-2 py-2 text-left font-medium">Jogador</th>
-              <th className={headClass}>J</th>
-              <th className={headClass}>G</th>
-              <th className={headClass}>A</th>
-              <th className={headClass}>G/A</th>
-              <th className={headClass}>VFC</th>
-            </tr>
-          </thead>
-          <tbody>
-            {scope.players.map((player) => (
-              <tr
-                key={player.playerId}
-                className="border-foreground/10 border-b"
-              >
-                <td className="px-2 py-2">{playerName(player.playerId)}</td>
-                <td className={cellClass}>{player.matches}</td>
-                <td className={cellClass}>{player.goals}</td>
-                <td className={cellClass}>{player.assists}</td>
-                <td className={cellClass}>{player.goalContributions}</td>
-                <td className={cellClass}>
-                  {formatRating(player.averageRating, 2)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <NightGoalkeepers
-        goalkeepers={scope.goalkeepers}
-        playerName={playerName}
-      />
-    </section>
+    <span
+      className={`flex w-11 items-center justify-end gap-1 ${value === 0 ? "text-muted" : ""}`}
+    >
+      {icon}
+      <FlashValue value={value} className="numeral text-lg" />
+      <span className="sr-only"> {label}</span>
+    </span>
   );
 }
 
-// Só quem jogou no gol naquele recorte, contando apenas as partidas no gol.
-function NightGoalkeepers({
-  goalkeepers,
-  playerName,
+// Os jogadores da noite, um por linha: partidas, gols, assistências, defesas
+// de quem foi para o gol e a média da Nota VFC. Quando um número muda (partida
+// nova registrada), ele pisca.
+export function NightPlayers({
+  scope,
+  lookup,
 }: {
-  goalkeepers: NightGoalkeeperSummary[];
-  playerName: (playerId: number) => string;
+  scope: NightScopeSummary;
+  lookup: PlayerLookup;
 }) {
-  if (goalkeepers.length === 0) return null;
+  if (scope.players.length === 0) return null;
+  const saves = new Map(
+    scope.goalkeepers.map((goalkeeper) => [
+      goalkeeper.playerId,
+      goalkeeper.saves,
+    ]),
+  );
+  const iconClass = "h-4 w-4 opacity-70";
+
   return (
-    <div className="mt-3 overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-foreground/15 border-b">
-            <th className="px-2 py-2 text-left font-medium">Goleiro</th>
-            <th className={headClass}>J</th>
-            <th className={headClass}>Def</th>
-            <th className={headClass}>Pên.</th>
-            <th className={headClass}>GS</th>
-            <th className={headClass}>CS</th>
-            <th className={headClass}>VFC</th>
-          </tr>
-        </thead>
-        <tbody>
-          {goalkeepers.map((goalkeeper) => (
-            <tr
-              key={goalkeeper.playerId}
-              className="border-foreground/10 border-b"
-            >
-              <td className="px-2 py-2">{playerName(goalkeeper.playerId)}</td>
-              <td className={cellClass}>{goalkeeper.matches}</td>
-              <td className={cellClass}>{goalkeeper.saves}</td>
-              <td className={cellClass}>{goalkeeper.penaltiesSaved}</td>
-              <td className={cellClass}>{goalkeeper.goalsConceded}</td>
-              <td className={cellClass}>{goalkeeper.cleanSheets}</td>
-              <td className={cellClass}>
-                {formatRating(goalkeeper.averageRating, 2)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="mt-1 text-xs opacity-70">
-        Def: defesas · Pên.: defesas de pênalti · GS: gols sofridos · CS: jogos
-        sem sofrer gol
-      </p>
-    </div>
+    <ul className="divide-line/40 divide-y">
+      {scope.players.map((player) => {
+        const info = lookup(player.playerId);
+        const playerSaves = saves.get(player.playerId);
+        return (
+          <ListItemTransition key={player.playerId}>
+            <li className="flex items-center gap-3 py-2.5">
+              <PlayerAvatar
+                name={info.name}
+                shirtNumber={info.shirtNumber}
+                photoUrl={info.photoUrl}
+                size="sm"
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-bold">{info.name}</span>
+                <span className="text-muted text-xs">
+                  <FlashValue value={player.matches} />{" "}
+                  {player.matches === 1 ? "partida" : "partidas"}
+                </span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Count
+                  icon={<BallIcon className={iconClass} />}
+                  label="gols"
+                  value={player.goals}
+                />
+                <Count
+                  icon={<AssistIcon className={iconClass} />}
+                  label="assistências"
+                  value={player.assists}
+                />
+                {playerSaves !== undefined && (
+                  <Count
+                    icon={<GloveIcon className={iconClass} />}
+                    label="defesas"
+                    value={playerSaves}
+                  />
+                )}
+              </span>
+              <span className="w-12 text-right">
+                <FlashValue
+                  value={formatRating(player.averageRating, 2)}
+                  className="numeral text-lg"
+                />
+                <span className="text-muted block text-[0.65rem]">VFC</span>
+              </span>
+            </li>
+          </ListItemTransition>
+        );
+      })}
+    </ul>
   );
 }
 
 export interface AwardLine {
   award: AwardType;
   playerName: string;
+  shirtNumber?: number;
+  photoUrl: string | null;
+  slug: string | null;
   value: number;
 }
 
-export function AwardList({
-  title,
-  awards,
-}: {
-  title: string;
-  awards: AwardLine[];
-}) {
+const AWARD_UNIT: Record<AwardType, string> = {
+  top_scorer: "gols",
+  top_assists: "assistências",
+  mvp: "média VFC",
+  rush_mvp: "média VFC",
+};
+
+export function formatAwardValue(award: AwardType, value: number): string {
+  return award === "mvp" || award === "rush_mvp"
+    ? formatRating(value, 2)
+    : String(value);
+}
+
+export function awardUnit(award: AwardType, value: number): string {
+  if (award === "top_scorer" && value === 1) return "gol";
+  if (award === "top_assists" && value === 1) return "assistência";
+  return AWARD_UNIT[award];
+}
+
+// Prêmios da noite. É aqui (e na premiação) que o destaque visual é
+// permitido: retrato com moldura amarela, o nome do prêmio e o número que o
+// rendeu. Co-vencedores aparecem lado a lado, com o mesmo prêmio.
+export function AwardList({ awards }: { awards: AwardLine[] }) {
   if (awards.length === 0) return null;
 
-  const byAward = new Map<AwardType, AwardLine[]>();
-  for (const award of awards) {
-    byAward.set(award.award, [...(byAward.get(award.award) ?? []), award]);
-  }
-
   return (
-    <section>
-      <h3 className="mb-2 font-semibold">{title}</h3>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-        {[...byAward].map(([award, winners]) => (
-          <div key={award} className="contents">
-            <dt className="opacity-70">{AWARD_LABEL[award]}</dt>
-            <dd>
-              {winners.map((winner) => winner.playerName).join(", ")} (
-              {formatAwardValue(award, winners[0].value)})
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </section>
+    <ul
+      className={`grid gap-x-2 gap-y-6 ${
+        awards.length <= 3
+          ? "grid-cols-3"
+          : "grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4"
+      }`}
+    >
+      {awards.map((award) => {
+        const content = (
+          <>
+            <PlayerAvatar
+              name={award.playerName}
+              shirtNumber={award.shirtNumber}
+              photoUrl={award.photoUrl}
+              size="lg"
+              ring="accent"
+              className="ease-out-quint h-auto! w-full max-w-24 transition-transform duration-200 group-hover:scale-105 group-active:scale-95"
+            />
+            <span className="text-accent mt-2 text-xs font-bold">
+              {AWARD_LABEL[award.award]}
+            </span>
+            <span className="max-w-full truncate text-base font-bold">
+              {award.playerName}
+            </span>
+            <span className="text-soft text-xs">
+              <FlashValue
+                value={formatAwardValue(award.award, award.value)}
+                className="numeral text-fg text-base"
+              />{" "}
+              {awardUnit(award.award, award.value)}
+            </span>
+          </>
+        );
+        const tileClass = "group flex flex-col items-center text-center";
+        return (
+          <li key={`${award.award}:${award.playerName}`}>
+            {award.slug ? (
+              <Link
+                href={`/jogadores/${award.slug}`}
+                transitionTypes={FORWARD}
+                className={tileClass}
+              >
+                {content}
+              </Link>
+            ) : (
+              <div className={tileClass}>{content}</div>
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
 export function OverallRanking({ ranking }: { ranking: OverallRankingRow[] }) {
   if (ranking.length === 0) return null;
   return (
-    <section>
-      <h3 className="mb-1 font-semibold">Ranking geral</h3>
-      <p className="mb-2 text-xs opacity-70">
-        Desde a criação do clube: partidas principais do sistema + histórico. O
-        Rush não entra.
-      </p>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-foreground/15 border-b">
-              <th className="px-2 py-2 text-left font-medium">Jogador</th>
-              <th className={headClass}>J</th>
-              <th className={headClass}>G</th>
-              <th className={headClass}>A</th>
-              <th className={headClass}>G/A</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ranking.map((row) => (
-              <tr key={row.playerId} className="border-foreground/10 border-b">
-                <td className="px-2 py-2">
-                  #{row.shirtNumber} {row.playerName}
-                </td>
-                <td className={cellClass}>{row.matches}</td>
-                <td className={cellClass}>{row.goals}</td>
-                <td className={cellClass}>{row.assists}</td>
-                <td className={cellClass}>{row.goalContributions}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
+    <Table>
+      <thead>
+        <tr>
+          <Th align="left">Jogador</Th>
+          <Th title="Jogos">J</Th>
+          <Th title="Gols">G</Th>
+          <Th title="Assistências">A</Th>
+          <Th>G/A</Th>
+        </tr>
+      </thead>
+      <tbody>
+        {ranking.map((row) => (
+          <Tr key={row.playerId}>
+            <Td align="left">
+              <span className="text-muted mr-2 inline-block w-6 tabular-nums">
+                {row.shirtNumber}
+              </span>
+              <span className="font-medium">{row.playerName}</span>
+            </Td>
+            <Td>{row.matches}</Td>
+            <Td>{row.goals}</Td>
+            <Td>{row.assists}</Td>
+            <Td strong>{row.goalContributions}</Td>
+          </Tr>
+        ))}
+      </tbody>
+    </Table>
   );
 }

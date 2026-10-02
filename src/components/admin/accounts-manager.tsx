@@ -12,6 +12,11 @@ import {
 } from "@/server/actions/account-actions";
 import type { ActionResult } from "@/server/actions/action";
 import type { Account } from "@/server/users/service";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { ConfirmDialog } from "../ui/dialog";
+import { Field, Input, Notice, Select } from "../ui/field";
+import { PlayerAvatar } from "../ui/player-avatar";
 
 type Role = Account["role"];
 
@@ -19,6 +24,7 @@ interface PlayerOption {
   id: number;
   name: string;
   shirtNumber: number;
+  photoUrl: string | null;
 }
 
 interface AccountsManagerProps {
@@ -31,11 +37,6 @@ const ROLE_LABEL: Record<Role, string> = {
   admin: "Administrador",
   player: "Jogador",
 };
-
-const fieldClass =
-  "border-foreground/20 w-full rounded border bg-transparent px-3 py-2 text-base";
-const buttonClass =
-  "border-foreground/20 min-h-11 rounded border px-3 py-2 text-sm font-medium disabled:opacity-50";
 
 // Mensagem do servidor: o erro geral ou o primeiro erro de campo.
 function errorMessage(result: ActionResult<unknown>): string {
@@ -81,12 +82,7 @@ function Feedback({
 }) {
   if (!feedback) return null;
   return (
-    <p
-      role={feedback.ok ? "status" : "alert"}
-      className={`text-sm ${feedback.ok ? "text-green-700 dark:text-green-400" : "text-red-600"}`}
-    >
-      {feedback.message}
-    </p>
+    <Notice tone={feedback.ok ? "success" : "error"}>{feedback.message}</Notice>
   );
 }
 
@@ -105,10 +101,8 @@ function PlayerSelect({
   label: string;
 }) {
   return (
-    <label className="flex flex-col gap-1 text-sm">
-      {label}
-      <select
-        className={fieldClass}
+    <Field label={label}>
+      <Select
         value={value ?? ""}
         onChange={(event) =>
           onChange(
@@ -125,13 +119,33 @@ function PlayerSelect({
               value={player.id}
               disabled={owner !== undefined}
             >
-              #{player.shirtNumber} {player.name}
+              {player.shirtNumber} {player.name}
               {owner !== undefined && ` (conta de ${owner})`}
             </option>
           );
         })}
-      </select>
-    </label>
+      </Select>
+    </Field>
+  );
+}
+
+function RoleSelect({
+  value,
+  onChange,
+}: {
+  value: Role;
+  onChange: (role: Role) => void;
+}) {
+  return (
+    <Field label="Papel">
+      <Select
+        value={value}
+        onChange={(event) => onChange(event.target.value as Role)}
+      >
+        <option value="player">{ROLE_LABEL.player}</option>
+        <option value="admin">{ROLE_LABEL.admin}</option>
+      </Select>
+    </Field>
   );
 }
 
@@ -173,74 +187,52 @@ function NewAccountForm({
   return (
     <form
       onSubmit={submit}
-      className="border-foreground/15 flex flex-col gap-3 rounded border p-4"
+      className="bg-surface flex flex-col gap-4 rounded-lg p-4 lg:sticky lg:top-20"
     >
-      <h2 className="font-semibold">Nova conta</h2>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm">
-          Nome
-          <input
-            className={fieldClass}
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            required
-            maxLength={80}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          E-mail
-          <input
-            className={fieldClass}
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            autoComplete="off"
-            required
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Senha (mínimo de 8 caracteres)
-          <input
-            className={fieldClass}
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            autoComplete="new-password"
-            minLength={8}
-            required
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Papel
-          <select
-            className={fieldClass}
-            value={role}
-            onChange={(event) => setRole(event.target.value as Role)}
-          >
-            <option value="player">{ROLE_LABEL.player}</option>
-            <option value="admin">{ROLE_LABEL.admin}</option>
-          </select>
-        </label>
-        <PlayerSelect
-          label="Jogador vinculado"
-          value={playerId}
-          onChange={setPlayerId}
-          players={players}
-          takenBy={takenBy}
+      <h2 className="text-lg font-bold tracking-tight">Nova conta</h2>
+      <Field label="Nome">
+        <Input
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          required
+          maxLength={80}
         />
-      </div>
-      <p className="text-xs opacity-70">
-        A conta entra pelo tile do jogador vinculado. O e-mail identifica a
+      </Field>
+      <Field label="E-mail">
+        <Input
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          autoComplete="off"
+          required
+        />
+      </Field>
+      <Field label="Senha" hint="Mínimo de 8 caracteres">
+        <Input
+          type="password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          autoComplete="new-password"
+          minLength={8}
+          required
+        />
+      </Field>
+      <RoleSelect value={role} onChange={setRole} />
+      <PlayerSelect
+        label="Jogador vinculado"
+        value={playerId}
+        onChange={setPlayerId}
+        players={players}
+        takenBy={takenBy}
+      />
+      <p className="text-muted text-xs">
+        A conta entra pelo retrato do jogador vinculado. O e-mail identifica a
         conta e não é exibido a visitantes.
       </p>
       <Feedback feedback={feedback} />
-      <button
-        type="submit"
-        disabled={pending}
-        className="bg-foreground text-background min-h-11 self-start rounded px-4 py-2 font-medium disabled:opacity-60"
-      >
-        {pending ? "Criando..." : "Criar conta"}
-      </button>
+      <Button type="submit" variant="primary" loading={pending}>
+        {pending ? "Criando" : "Criar conta"}
+      </Button>
     </form>
   );
 }
@@ -260,6 +252,7 @@ function AccountCard({
   const [role, setRole] = useState<Role>(account.role);
   const [playerId, setPlayerId] = useState<number | null>(account.playerId);
   const [newPassword, setNewPassword] = useState("");
+  const [confirmingDeactivation, setConfirmingDeactivation] = useState(false);
 
   const takenBy = new Map(
     accounts.flatMap((other) =>
@@ -271,52 +264,42 @@ function AccountCard({
   const linked = players.find((player) => player.id === account.playerId);
 
   return (
-    <li className="border-foreground/15 flex flex-col gap-3 rounded border p-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="font-semibold">
+    <li className="bg-surface flex flex-col gap-4 rounded-lg p-4">
+      <div className="flex items-center gap-3">
+        <PlayerAvatar
+          name={account.name}
+          shirtNumber={linked?.shirtNumber}
+          photoUrl={linked?.photoUrl ?? null}
+          size="md"
+        />
+        <div className="min-w-0 flex-1">
+          <p className="text-base font-bold">
             {account.name}
-            {isSelf && <span className="font-normal opacity-70"> (você)</span>}
+            {isSelf && <span className="text-muted font-normal"> (você)</span>}
           </p>
-          <p className="text-sm break-all opacity-70">{account.email}</p>
-          <p className="text-sm">
+          <p className="text-muted text-sm break-all">{account.email}</p>
+          <p className="text-soft text-sm">
             {linked
-              ? `Jogador: #${linked.shirtNumber} ${linked.name}`
+              ? `Jogador: ${linked.name}, camisa ${linked.shirtNumber}`
               : "Sem jogador vinculado"}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 text-xs font-medium">
-          <span className="border-foreground/20 rounded border px-2 py-1">
+        <div className="flex flex-col items-end gap-1.5">
+          <Badge tone={account.role === "admin" ? "accent" : "neutral"}>
             {ROLE_LABEL[account.role]}
-          </span>
-          <span
-            className={`rounded px-2 py-1 ${
-              account.active
-                ? "bg-green-600/15 text-green-700 dark:text-green-400"
-                : "bg-red-600/15 text-red-700 dark:text-red-400"
-            }`}
-          >
+          </Badge>
+          <Badge tone={account.active ? "win" : "loss"}>
             {account.active ? "Ativa" : "Desativada"}
-          </span>
+          </Badge>
         </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="flex items-end gap-2">
-          <label className="flex flex-1 flex-col gap-1 text-sm">
-            Papel
-            <select
-              className={fieldClass}
-              value={role}
-              onChange={(event) => setRole(event.target.value as Role)}
-            >
-              <option value="player">{ROLE_LABEL.player}</option>
-              <option value="admin">{ROLE_LABEL.admin}</option>
-            </select>
-          </label>
-          <button
-            type="button"
-            className={buttonClass}
+          <div className="flex-1">
+            <RoleSelect value={role} onChange={setRole} />
+          </div>
+          <Button
             disabled={pending || role === account.role}
             onClick={() =>
               run(
@@ -326,7 +309,7 @@ function AccountCard({
             }
           >
             Salvar
-          </button>
+          </Button>
         </div>
 
         <div className="flex items-end gap-2">
@@ -339,9 +322,7 @@ function AccountCard({
               takenBy={takenBy}
             />
           </div>
-          <button
-            type="button"
-            className={buttonClass}
+          <Button
             disabled={pending || playerId === account.playerId}
             onClick={() =>
               run(
@@ -351,25 +332,20 @@ function AccountCard({
             }
           >
             Salvar
-          </button>
+          </Button>
         </div>
 
         <div className="flex items-end gap-2">
-          <label className="flex flex-1 flex-col gap-1 text-sm">
-            Nova senha
-            <input
-              className={fieldClass}
+          <Field label="Nova senha (mínimo de 8)" className="flex-1">
+            <Input
               type="password"
               value={newPassword}
               onChange={(event) => setNewPassword(event.target.value)}
               autoComplete="new-password"
               minLength={8}
-              placeholder="mínimo de 8 caracteres"
             />
-          </label>
-          <button
-            type="button"
-            className={buttonClass}
+          </Field>
+          <Button
             disabled={pending || newPassword.length < 8}
             onClick={() =>
               run(
@@ -380,36 +356,27 @@ function AccountCard({
             }
           >
             Redefinir
-          </button>
+          </Button>
         </div>
 
-        <div className="flex items-end">
+        <div className="flex flex-col justify-end gap-1">
           {account.active ? (
-            <button
-              type="button"
-              className={`${buttonClass} text-red-600`}
-              disabled={pending || isSelf}
-              title={isSelf ? "Você não pode desativar a própria conta" : ""}
-              onClick={() => {
-                if (
-                  !window.confirm(
-                    `Desativar a conta de ${account.name}? Ela perde o acesso na hora.`,
-                  )
-                ) {
-                  return;
-                }
-                run(
-                  () => deactivateAccount({ userId: account.id }),
-                  "Conta desativada.",
-                );
-              }}
-            >
-              Desativar conta
-            </button>
+            <>
+              <Button
+                variant="danger"
+                disabled={pending || isSelf}
+                onClick={() => setConfirmingDeactivation(true)}
+              >
+                Desativar conta
+              </Button>
+              {isSelf && (
+                <p className="text-muted text-xs">
+                  Você não pode desativar a própria conta.
+                </p>
+              )}
+            </>
           ) : (
-            <button
-              type="button"
-              className={buttonClass}
+            <Button
               disabled={pending}
               onClick={() =>
                 run(
@@ -419,12 +386,29 @@ function AccountCard({
               }
             >
               Reativar conta
-            </button>
+            </Button>
           )}
         </div>
       </div>
 
       <Feedback feedback={feedback} />
+
+      <ConfirmDialog
+        open={confirmingDeactivation}
+        title={`Desativar a conta de ${account.name}?`}
+        confirmLabel="Desativar conta"
+        tone="danger"
+        onClose={() => setConfirmingDeactivation(false)}
+        onConfirm={() => {
+          setConfirmingDeactivation(false);
+          run(
+            () => deactivateAccount({ userId: account.id }),
+            "Conta desativada.",
+          );
+        }}
+      >
+        Ela perde o acesso na hora. Dá para reativar depois.
+      </ConfirmDialog>
     </li>
   );
 }
@@ -437,11 +421,16 @@ export function AccountsManager({
   currentUserId,
 }: AccountsManagerProps) {
   return (
-    <div className="flex flex-col gap-5">
+    <div className="grid gap-8 lg:grid-cols-[4fr_8fr] lg:items-start">
       <NewAccountForm players={players} accounts={accounts} />
 
-      <section>
-        <h2 className="mb-2 font-semibold">Contas ({accounts.length})</h2>
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-bold tracking-tight">
+          Contas
+          <span className="text-muted ml-2 text-sm font-normal">
+            {accounts.length}
+          </span>
+        </h2>
         <ul className="flex flex-col gap-3">
           {accounts.map((account) => (
             <AccountCard

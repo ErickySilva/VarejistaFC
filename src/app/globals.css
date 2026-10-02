@@ -1,26 +1,446 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Identidade visual do Varejista FC (docs/design-system.md).
+ *
+ * Tudo sai do escudo: o azul-marinho do grifo vira a base, o azul-claro do
+ * escudo vira a superfície de destaque, o amarelo da faixa é o único acento.
+ * Os componentes usam só os tokens daqui; nenhum valor de cor, raio ou sombra
+ * é escrito direto neles.
+ */
+@theme {
+  /* Tinta: do fundo à superfície elevada. O 700 é o azul do grifo. */
+  --color-ink-950: #0e1433;
+  --color-ink-900: #131a40;
+  --color-ink-800: #1a2351;
+  --color-ink-700: #243264;
+  --color-ink-600: #32407a;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* As outras cores do escudo: o branco da moldura, o azul-claro do miolo, o
+     azul do fundo do logo e o amarelo da faixa. */
+  --color-paper: #fdfdfc;
+  --color-shield: #b4c7e6;
+  --color-mist: #99a6d0;
+  --color-ribbon: #f2c930;
+  --color-ribbon-deep: #d9ae12;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  /* Resultados e estados. Nunca são a única pista: sempre vêm com letra,
+     ícone ou forma. */
+  --color-win: #5fd3a2;
+  --color-win-ink: #0c2a22;
+  --color-loss: #f47b8d;
+  --color-loss-ink: #3a0f18;
+  --color-draw: #99a6d0;
+
+  /*
+   * Papéis. É isto que os componentes usam; as cores do escudo acima só
+   * aparecem direto onde a marca é literal (moldura do retrato, faixa).
+   */
+  --color-bg: var(--color-ink-900);
+  --color-surface: var(--color-ink-800);
+  --color-raised: var(--color-ink-700);
+  --color-line: var(--color-ink-600);
+  /* Fundo de campo de formulário. */
+  --color-well: var(--color-ink-950);
+  /* Texto: principal, de apoio e discreto. */
+  --color-fg: var(--color-paper);
+  --color-soft: var(--color-shield);
+  --color-muted: var(--color-mist);
+  /* Acento: o amarelo da faixa. `accent-ink` é o texto sobre ele. */
+  --color-accent: var(--color-ribbon);
+  --color-accent-deep: var(--color-ribbon-deep);
+  --color-accent-ink: #1b2148;
+  --color-focus: var(--color-ribbon);
+
+  --font-sans: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+
+  /* Uma sombra só, para o que realmente flutua (barra inferior, diálogo). */
+  --shadow-float: 0 18px 40px -18px rgb(5 8 28 / 0.85);
+
+  /* Curvas e tempos de movimento. */
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out-quad: cubic-bezier(0.45, 0, 0.55, 1);
+
+  --animate-rise: rise 0.55s var(--ease-out-quint) both;
+  --animate-fade: fade 0.4s ease-out both;
+  --animate-pop: pop 0.5s var(--ease-out-quint) both;
+  --animate-live: live 2.4s ease-in-out infinite;
+  --animate-sheen: sheen 1.6s linear infinite;
+  --animate-draw: draw 1.1s var(--ease-out-quint) both;
+  --animate-grow: grow 0.8s var(--ease-out-quint) both;
+  --animate-spot: spot 1.2s var(--ease-out-quint) both;
+  /* Resposta a uma ação: número que mudou, limite atingido, coisa salva. */
+  --animate-roll-up: roll-up 0.28s var(--ease-out-quint) both;
+  --animate-roll-down: roll-down 0.28s var(--ease-out-quint) both;
+  --animate-shake: shake 0.32s ease-in-out both;
+  --animate-tick: tick 0.9s ease-out both;
+  --animate-stamp: stamp 0.5s var(--ease-out-quint) both;
+  --animate-next: step-next 0.32s var(--ease-out-quint) both;
+  --animate-prev: step-prev 0.32s var(--ease-out-quint) both;
+  --animate-unveil: unveil 0.9s var(--ease-out-quint) both;
+
+  @keyframes roll-up {
+    from {
+      opacity: 0;
+      transform: translateY(45%);
+    }
+  }
+  @keyframes roll-down {
+    from {
+      opacity: 0;
+      transform: translateY(-45%);
+    }
+  }
+  @keyframes shake {
+    20% {
+      transform: translateX(-5px);
+    }
+    45% {
+      transform: translateX(4px);
+    }
+    70% {
+      transform: translateX(-2px);
+    }
+  }
+  @keyframes tick {
+    0% {
+      color: var(--color-accent);
+      transform: translateY(35%);
+      opacity: 0;
+    }
+    22% {
+      transform: none;
+      opacity: 1;
+    }
+    60% {
+      color: var(--color-accent);
+    }
+  }
+  @keyframes stamp {
+    from {
+      opacity: 0;
+      transform: scale(1.35);
+    }
+  }
+  @keyframes step-next {
+    from {
+      opacity: 0;
+      transform: translateX(1.75rem);
+    }
+  }
+  @keyframes step-prev {
+    from {
+      opacity: 0;
+      transform: translateX(-1.75rem);
+    }
+  }
+  @keyframes unveil {
+    from {
+      filter: brightness(0.16) saturate(0) blur(9px);
+      transform: scale(0.94);
+    }
+    to {
+      filter: none;
+      transform: none;
+    }
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(0.75rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: scale(0.92);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes live {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.35;
+      transform: scale(0.7);
+    }
+  }
+  @keyframes sheen {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+  @keyframes grow {
+    from {
+      transform: scaleX(0);
+    }
+  }
+  @keyframes spot {
+    from {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes draw {
+    from {
+      stroke-dashoffset: var(--draw-length, 600);
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+@keyframes count {
+  from {
+    --num: 0;
+  }
+}
+/* Número inteiro animável, para a contagem dos números de destaque. */
+@property --num {
+  syntax: "<integer>";
+  initial-value: 0;
+  inherits: false;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+@layer base {
+  body {
+    background: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+  }
+
+  /* Foco de teclado: sempre visível. */
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  ::selection {
+    background: var(--color-ribbon);
+    color: var(--color-accent-ink);
+  }
+}
+
+/*
+ * Formas do escudo.
+ * - hex: o hexágono de ponta para cima do escudo, usado nos retratos.
+ * - ribbon: a faixa com as pontas recortadas, usada em rótulos de destaque.
+ */
+@utility clip-hex {
+  clip-path: polygon(50% 0, 100% 21%, 100% 79%, 50% 100%, 0 79%, 0 21%);
+}
+
+@utility clip-ribbon {
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    calc(100% - 0.45em) 50%,
+    100% 100%,
+    0 100%,
+    0.45em 50%
+  );
+}
+
+/* Números de estatística: pesados, alinhados em colunas e um pouco apertados. */
+@utility numeral {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+/* Títulos de página e de destaque. */
+@utility display {
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+}
+
+/* Atraso em cascata: o elemento usa a variável --i definida no style. */
+@utility stagger {
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+/*
+ * Contagem de um número inteiro até o valor de --num, definido no style do
+ * elemento. Só CSS: sem JavaScript e sem salto na hidratação. O valor real
+ * fica em um texto para leitores de tela.
+ */
+@utility count-up {
+  counter-reset: num var(--num);
+  animation: count 1s var(--ease-out-quint) both;
+  &::after {
+    content: counter(num);
+  }
+}
+
+/* Esqueleto de carregamento. */
+@utility skeleton {
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    100deg,
+    var(--color-surface) 30%,
+    var(--color-raised) 50%,
+    var(--color-surface) 70%
+  );
+  background-size: 200% 100%;
+  animation: var(--animate-sheen);
+}
+
+/* Área segura do aparelho, para a barra inferior. */
+@utility pb-safe {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+/*
+ * Transições entre telas (View Transitions). Só acontecem em resposta a uma
+ * navegação ou a uma mudança nos dados; onde o navegador não suporta, a troca
+ * é direta.
+ */
+::view-transition {
+  pointer-events: none;
+}
+
+@keyframes vt-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes vt-slide {
+  from {
+    translate: var(--slide-offset, 0) var(--rise-offset, 0);
+  }
+}
+
+/* Entre seções do mesmo nível: a tela antiga sai rápido, a nova sobe de leve. */
+::view-transition-old(.page) {
+  animation: 110ms ease-in both vt-fade reverse;
+}
+::view-transition-new(.page) {
+  --rise-offset: 10px;
+  animation:
+    200ms ease-out 90ms both vt-fade,
+    340ms var(--ease-out-quint) 60ms both vt-slide;
+}
+
+/* Para dentro (lista → detalhe) e de volta: a direção acompanha o caminho. */
+::view-transition-old(.nav-forward) {
+  --slide-offset: -28px;
+  animation:
+    120ms ease-in both vt-fade reverse,
+    300ms ease-in both vt-slide reverse;
+}
+::view-transition-new(.nav-forward) {
+  --slide-offset: 28px;
+  animation:
+    200ms ease-out 100ms both vt-fade,
+    360ms var(--ease-out-quint) 60ms both vt-slide;
+}
+::view-transition-old(.nav-back) {
+  --slide-offset: 28px;
+  animation:
+    120ms ease-in both vt-fade reverse,
+    300ms ease-in both vt-slide reverse;
+}
+::view-transition-new(.nav-back) {
+  --slide-offset: -28px;
+  animation:
+    200ms ease-out 100ms both vt-fade,
+    360ms var(--ease-out-quint) 60ms both vt-slide;
+}
+
+/* Retrato que viaja de uma tela para a outra. */
+::view-transition-group(.morph) {
+  animation-duration: 420ms;
+  animation-timing-function: var(--ease-out-quint);
+  z-index: 50;
+}
+
+/* Linha que muda de posição (ranking) e o indicador da navegação. */
+::view-transition-group(.reorder),
+::view-transition-group(.slide) {
+  animation-duration: 380ms;
+  animation-timing-function: var(--ease-out-quint);
+}
+
+/* Item que chega em uma lista viva (partida nova na gameplay). */
+::view-transition-new(.arrive) {
+  --rise-offset: 14px;
+  animation:
+    260ms ease-out both vt-fade,
+    420ms var(--ease-out-quint) both vt-slide;
+}
+
+/* As barras de navegação ficam paradas enquanto o conteúdo troca. */
+::view-transition-group(site-header),
+::view-transition-group(site-nav) {
+  animation: none;
+  z-index: 100;
+}
+::view-transition-old(site-header),
+::view-transition-old(site-nav) {
+  display: none;
+}
+::view-transition-new(site-header),
+::view-transition-new(site-nav) {
+  animation: none;
+}
+
+/*
+ * Movimento reduzido: sem deslocamentos nem repetições. O conteúdo aparece
+ * direto no estado final.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
 }

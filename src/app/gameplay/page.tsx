@@ -1,19 +1,24 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { AccessDenied } from "@/components/access-denied";
 import { ActionButton } from "@/components/gameplay/action-button";
+import { CloseGameplayButton } from "@/components/gameplay/close-gameplay-button";
+import { LivePanel } from "@/components/gameplay/live-panel";
+import { LiveRefresh } from "@/components/gameplay/live-refresh";
 import {
   AwardList,
-  MatchList,
-  NightHeader,
-  NightStandings,
+  MatchStrip,
+  nightPlayerIds,
   OverallRanking,
+  playerLookup,
 } from "@/components/gameplay/night-view";
+import { ButtonLink } from "@/components/ui/button";
+import { Notice } from "@/components/ui/field";
+import { PlusIcon } from "@/components/ui/icons";
+import { Page, PageHeader, Section } from "@/components/ui/layout";
 import { summarizeNight } from "@/domain/night";
 import { formatReferenceDate, referenceDateFor } from "@/domain/reference-date";
 import {
   cancelGameplay,
-  closeGameplay,
   startGameplay,
 } from "@/server/actions/gameplay-actions";
 import { getActorWithPermission } from "@/server/auth/page-access";
@@ -24,110 +29,98 @@ import {
   toDomainNight,
   type NightDetail,
 } from "@/server/nights/queries";
+import { getPlayerPhotos } from "@/server/players/directory";
 import { getOverallRanking } from "@/server/players/queries";
 
 export const metadata: Metadata = { title: "Gameplay" };
 
-function playerNames(night: NightDetail) {
-  const names = new Map(
-    night.matches.flatMap((match) =>
-      match.participations.map(
-        (participation) =>
-          [participation.playerId, participation.playerName] as const,
-      ),
-    ),
-  );
-  return (playerId: number) => names.get(playerId) ?? `Jogador ${playerId}`;
-}
-
 async function OpenNight({ night }: { night: NightDetail }) {
   const summary = summarizeNight(toDomainNight(night));
-  const playerName = playerNames(night);
+  const lookup = playerLookup(
+    night,
+    await getPlayerPhotos(nightPlayerIds(night)),
+  );
   const today = referenceDateFor(new Date());
   const startedOnAnotherDay = night.referenceDate !== today;
   const isEmpty = night.matches.length === 0;
 
   return (
     <>
-      <NightHeader night={night} summary={summary} />
+      <LivePanel night={night} summary={summary} lookup={lookup}>
+        {startedOnAnotherDay && !isEmpty && (
+          <Notice tone="info">
+            Esta gameplay começou em {formatReferenceDate(night.referenceDate)}{" "}
+            e continua aberta. As partidas registradas agora entram nela. Para
+            começar a de hoje, encerre esta primeiro.
+          </Notice>
+        )}
 
-      {startedOnAnotherDay && !isEmpty && (
-        <p className="border-foreground/20 rounded border p-3 text-sm">
-          Esta gameplay começou em {formatReferenceDate(night.referenceDate)} e
-          continua aberta. As partidas registradas agora entram nela. Para
-          começar a de hoje, encerre esta primeiro.
-        </p>
-      )}
-
-      {startedOnAnotherDay && isEmpty ? (
-        <div className="flex flex-col gap-3">
-          <p className="border-foreground/20 rounded border p-3 text-sm">
-            A gameplay de {formatReferenceDate(night.referenceDate)} ficou
-            aberta sem nenhuma partida. Ao iniciar a de hoje, ela é descartada.
-          </p>
-          <ActionButton
-            action={startGameplay}
-            label="Dar início à Gameplay de hoje"
-            pendingLabel="Iniciando..."
-          />
-        </div>
-      ) : (
-        <Link
-          href="/gameplay/partida/nova"
-          className="bg-foreground text-background flex min-h-12 items-center justify-center rounded px-4 py-3 font-medium"
-        >
-          Registrar partida
-        </Link>
-      )}
-
-      <section>
-        <h3 className="mb-2 font-semibold">Partidas</h3>
-        <MatchList matches={night.matches} editable />
-      </section>
-
-      <NightStandings
-        title="Estatísticas da noite"
-        note="Partidas principais: X1 e Partida."
-        scope={summary.main}
-        playerName={playerName}
-      />
-      <NightStandings
-        title="Torneio de Rush"
-        note="Fica fora das estatísticas principais."
-        scope={summary.rush}
-        playerName={playerName}
-      />
-      <AwardList
-        title="Parciais da noite"
-        awards={summary.awards.map((award) => ({
-          award: award.award,
-          playerName: playerName(award.playerId),
-          value: award.value,
-        }))}
-      />
-
-      {isEmpty ? (
-        <div className="flex flex-col gap-2">
-          <p className="text-sm opacity-70">
+        {startedOnAnotherDay && isEmpty ? (
+          <>
+            <Notice tone="info">
+              A gameplay de {formatReferenceDate(night.referenceDate)} ficou
+              aberta sem nenhuma partida. Ao iniciar a de hoje, ela é
+              descartada.
+            </Notice>
+            <ActionButton
+              action={startGameplay}
+              label="Dar início à gameplay de hoje"
+              pendingLabel="Iniciando"
+            />
+          </>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2">
+            <ButtonLink
+              href="/gameplay/partida/nova"
+              variant="primary"
+              size="lg"
+            >
+              <PlusIcon />
+              Registrar partida
+            </ButtonLink>
+            {isEmpty ? (
+              <ActionButton
+                action={cancelGameplay}
+                label="Cancelar gameplay"
+                pendingLabel="Cancelando"
+                variant="secondary"
+                confirm={{
+                  title: "Cancelar esta gameplay?",
+                  message: "Ela não tem partidas e será removida.",
+                  confirmLabel: "Cancelar gameplay",
+                }}
+              />
+            ) : (
+              <CloseGameplayButton />
+            )}
+          </div>
+        )}
+        {isEmpty && !startedOnAnotherDay && (
+          <p className="text-muted text-xs">
             Para encerrar, registre pelo menos uma partida. Se não houve jogo,
             cancele a gameplay.
           </p>
-          <ActionButton
-            action={cancelGameplay}
-            label="Cancelar gameplay"
-            pendingLabel="Cancelando..."
-            confirmMessage="Cancelar esta gameplay? Ela não tem partidas e será removida."
-            variant="secondary"
+        )}
+        {!isEmpty && (
+          <p className="text-muted text-xs">
+            Para corrigir ou excluir uma partida, toque nela na fita acima.
+          </p>
+        )}
+      </LivePanel>
+
+      {summary.awards.length > 0 && (
+        <Section title="Parciais dos prêmios" aside="até agora">
+          <AwardList
+            awards={summary.awards.map((award) => ({
+              award: award.award,
+              value: award.value,
+              playerName: lookup(award.playerId).name,
+              shirtNumber: lookup(award.playerId).shirtNumber,
+              photoUrl: lookup(award.playerId).photoUrl,
+              slug: lookup(award.playerId).slug,
+            }))}
           />
-        </div>
-      ) : (
-        <ActionButton
-          action={closeGameplay}
-          label="Encerrar Gameplay"
-          pendingLabel="Encerrando..."
-          confirmMessage="Encerrar a gameplay? Os prêmios e o resumo da noite serão calculados."
-          variant="danger"
-        />
+        </Section>
       )}
     </>
   );
@@ -136,25 +129,45 @@ async function OpenNight({ night }: { night: NightDetail }) {
 async function NoOpenNight() {
   const latest = await getLatestClosedNight();
   const awards = latest ? await getNightAwards(latest.id) : [];
+  const photos = await getPlayerPhotos(awards.map((award) => award.playerId));
 
   return (
     <>
-      <ActionButton
-        action={startGameplay}
-        label="Dar início à Gameplay"
-        pendingLabel="Iniciando..."
-      />
+      <section className="bg-surface animate-rise -mx-4 flex flex-col gap-4 px-4 py-6 sm:mx-0 sm:rounded-xl sm:px-6">
+        <div>
+          <h2 className="display text-2xl">Nenhuma gameplay em andamento</h2>
+          <p className="text-soft mt-1.5 text-sm">
+            Ao iniciar, a gameplay de hoje fica aberta para registrar as
+            partidas até você encerrar.
+          </p>
+        </div>
+        <ActionButton
+          action={startGameplay}
+          label="Dar início à gameplay"
+          pendingLabel="Iniciando"
+        />
+      </section>
 
       {latest && (
-        <section className="border-foreground/15 flex flex-col gap-4 rounded border p-3">
-          <NightHeader
-            night={latest}
-            summary={summarizeNight(toDomainNight(latest))}
+        <Section
+          title="Última gameplay"
+          aside={formatReferenceDate(latest.referenceDate)}
+          more={{ href: `/premiacao/${latest.id}`, label: "Premiação" }}
+        >
+          <MatchStrip matches={latest.matches} />
+          <AwardList
+            awards={awards.map((award) => ({
+              award: award.award,
+              value: award.value,
+              playerName: award.playerName,
+              photoUrl: photos.get(award.playerId)?.photoUrl ?? null,
+              slug: photos.get(award.playerId)?.slug ?? null,
+            }))}
           />
-          {latest.summary && <p className="text-sm">{latest.summary}</p>}
-          <AwardList title="Prêmios da noite" awards={awards} />
-          <MatchList matches={latest.matches} editable={false} />
-        </section>
+          {latest.summary && (
+            <p className="text-soft text-sm">{latest.summary}</p>
+          )}
+        </Section>
       )}
     </>
   );
@@ -170,10 +183,27 @@ export default async function GameplayPage() {
   ]);
 
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-6 px-4 py-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Gameplay</h1>
-      {openNight ? <OpenNight night={openNight} /> : <NoOpenNight />}
-      <OverallRanking ranking={ranking} />
-    </main>
+    <Page>
+      <LiveRefresh renderId={crypto.randomUUID()} />
+      {openNight ? (
+        <>
+          <h1 className="sr-only">Gameplay</h1>
+          <OpenNight night={openNight} />
+        </>
+      ) : (
+        <>
+          <PageHeader title="Gameplay" />
+          <NoOpenNight />
+        </>
+      )}
+      {ranking.length > 0 && (
+        <Section title="Ranking geral" aside="desde a criação do Clube">
+          <OverallRanking ranking={ranking} />
+          <p className="text-muted text-xs">
+            Partidas principais do sistema mais o histórico. O Rush não entra.
+          </p>
+        </Section>
+      )}
+    </Page>
   );
 }

@@ -1,59 +1,71 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
+import { Button, ButtonLink } from "@/components/ui/button";
+import { ShieldIcon, WhistleIcon } from "@/components/ui/icons";
+import { Page, PageHeader, Surface } from "@/components/ui/layout";
+import { PlayerAvatar } from "@/components/ui/player-avatar";
 import { signOutAndRedirect } from "@/server/actions/auth-actions";
 import { can } from "@/server/auth/policy";
 import { getActor } from "@/server/auth/session";
+import { getPlayerPhotos } from "@/server/players/directory";
 
 export const metadata: Metadata = { title: "Minha conta" };
 
 const ROLE_LABEL = { admin: "Administrador", player: "Jogador" };
 
-// Página provisória: confirma quem está logado e permite sair. A área do
-// jogador e a administrativa entram nas próximas fases.
+// Quem está logado, os atalhos que o papel permite e a saída.
 export default async function AccountPage() {
   const actor = await getActor();
   if (!actor) redirect("/entrar");
 
+  const link = actor.playerId
+    ? (await getPlayerPhotos([actor.playerId])).get(actor.playerId)
+    : undefined;
+
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-6 px-4">
-      <div className="w-full max-w-sm">
-        <h1 className="mb-4 text-2xl font-semibold tracking-tight">
-          Minha conta
-        </h1>
-        <dl className="mb-6 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-          <dt className="opacity-70">Nome</dt>
-          <dd>{actor.name}</dd>
-          <dt className="opacity-70">E-mail</dt>
-          <dd>{actor.email}</dd>
-          <dt className="opacity-70">Papel</dt>
-          <dd>{ROLE_LABEL[actor.role]}</dd>
-        </dl>
-        {can(actor, { action: "accounts.manage" }) && (
-          <Link
-            href="/admin"
-            className="border-foreground/20 mb-3 flex min-h-12 items-center justify-center rounded border px-4 py-3 font-medium"
-          >
-            Admin
-          </Link>
+    <Page width="narrow">
+      <PageHeader title="Minha conta" />
+
+      <Surface className="flex items-center gap-4 p-4">
+        <PlayerAvatar
+          name={actor.name}
+          photoUrl={link?.photoUrl ?? null}
+          size="lg"
+          ring="crest"
+        />
+        <div className="min-w-0">
+          <p className="display text-2xl">{actor.name}</p>
+          <p className="text-muted truncate text-sm">{actor.email}</p>
+          <Badge className="mt-2">{ROLE_LABEL[actor.role]}</Badge>
+        </div>
+      </Surface>
+
+      <div className="flex flex-col gap-2">
+        {link && (
+          <ButtonLink href={`/jogadores/${link.slug}`} size="lg">
+            Ver meu perfil
+          </ButtonLink>
         )}
         {can(actor, { action: "stats.manage" }) && (
-          <Link
-            href="/gameplay"
-            className="bg-foreground text-background mb-4 flex min-h-12 items-center justify-center rounded px-4 py-3 font-medium"
-          >
+          <ButtonLink href="/gameplay" size="lg">
+            <WhistleIcon />
             Gameplay
-          </Link>
+          </ButtonLink>
         )}
-        <form action={signOutAndRedirect}>
-          <button
-            type="submit"
-            className="border-foreground/20 rounded border px-4 py-2 font-medium"
-          >
-            Sair
-          </button>
-        </form>
+        {can(actor, { action: "accounts.manage" }) && (
+          <ButtonLink href="/admin" size="lg">
+            <ShieldIcon />
+            Admin
+          </ButtonLink>
+        )}
       </div>
-    </main>
+
+      <form action={signOutAndRedirect}>
+        <Button type="submit" variant="ghost">
+          Sair da conta
+        </Button>
+      </form>
+    </Page>
   );
 }

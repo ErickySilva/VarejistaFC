@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { MatchRow } from "@/components/matches/match-row";
+import { MatchRow, MatchRows } from "@/components/matches/match-row";
+import { ButtonLink } from "@/components/ui/button";
+import { EmptyState, Page, PageHeader, Section } from "@/components/ui/layout";
 import { formatReferenceDate } from "@/domain/reference-date";
 import { plural } from "@/lib/format";
 import {
@@ -48,59 +49,70 @@ export default async function MatchesPage({
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-5 px-4 py-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Partidas</h1>
-        <p className="text-sm opacity-70">
-          {plural(total, "partida registrada", "partidas registradas")}
-        </p>
-      </div>
+    <Page>
+      <PageHeader
+        title="Partidas"
+        description={plural(
+          total,
+          "partida registrada",
+          "partidas registradas",
+        )}
+      />
 
       {matches.length === 0 ? (
-        <p className="text-sm opacity-70">
+        <EmptyState
+          title={
+            total === 0
+              ? "Nenhuma partida registrada ainda"
+              : "Não há partidas nesta página"
+          }
+        >
           {total === 0
-            ? "Nenhuma partida registrada ainda."
-            : "Não há partidas nesta página."}
-        </p>
+            ? "As partidas aparecem aqui assim que a primeira gameplay for registrada."
+            : undefined}
+        </EmptyState>
       ) : (
-        groupByNight(matches).map((group) => (
-          <section key={group.nightId}>
-            <h2 className="mb-2 text-sm font-semibold">
-              Gameplay de {formatReferenceDate(group.referenceDate)}
-            </h2>
-            <ul className="flex flex-col gap-2">
+        groupByNight(matches).map((group, index) => (
+          <Section
+            key={group.nightId}
+            title={`Gameplay de ${formatReferenceDate(group.referenceDate)}`}
+            aside={plural(group.matches.length, "partida", "partidas")}
+            className="animate-rise stagger"
+            style={{ "--i": Math.min(index, 5) } as React.CSSProperties}
+          >
+            <MatchRows>
               {group.matches.map((match) => (
                 <MatchRow key={match.id} match={match} />
               ))}
-            </ul>
-          </section>
+            </MatchRows>
+          </Section>
         ))
       )}
 
       {pages > 1 && (
         <nav
           aria-label="Páginas"
-          className="flex items-center justify-between text-sm"
+          className="flex items-center justify-between gap-3 text-sm"
         >
           {page > 1 ? (
-            <Link href={`/partidas?pagina=${page - 1}`} className="underline">
+            <ButtonLink href={`/partidas?pagina=${page - 1}`}>
               Mais recentes
-            </Link>
+            </ButtonLink>
           ) : (
             <span />
           )}
-          <span className="opacity-70">
+          <span className="text-muted">
             Página {page} de {pages}
           </span>
           {page < pages ? (
-            <Link href={`/partidas?pagina=${page + 1}`} className="underline">
+            <ButtonLink href={`/partidas?pagina=${page + 1}`}>
               Mais antigas
-            </Link>
+            </ButtonLink>
           ) : (
             <span />
           )}
         </nav>
       )}
-    </main>
+    </Page>
   );
 }

@@ -1,43 +1,34 @@
-import Image from "next/image";
-import Link from "next/link";
+import { can } from "@/server/auth/policy";
 import { getActor } from "@/server/auth/session";
+import { getOpenNight } from "@/server/nights/queries";
+import { getPlayerPhotos } from "@/server/players/directory";
+import { AppNav, type NavUser } from "./shell/app-nav";
 
-const linkClass = "flex min-h-11 items-center px-2 text-sm";
-
-// Navegação comum a todas as páginas. As páginas de estatística são abertas a
-// visitantes; "Entrar" leva à tela de entrada e, logado, vira o atalho para a
-// conta.
+// Carrega o que a navegação precisa saber (quem está logado e se há gameplay
+// em andamento) e entrega à navegação, que cuida do estado ativo de cada link.
+// Os atalhos de admin são só atalhos: cada área confere a permissão de novo.
 export async function SiteHeader() {
-  const actor = await getActor();
+  const [actor, openNight] = await Promise.all([getActor(), getOpenNight()]);
+
+  let user: NavUser | null = null;
+  if (actor) {
+    const link = actor.playerId
+      ? (await getPlayerPhotos([actor.playerId])).get(actor.playerId)
+      : undefined;
+    user = {
+      name: actor.name,
+      player: link
+        ? { href: `/jogadores/${link.slug}`, photoUrl: link.photoUrl }
+        : null,
+    };
+  }
 
   return (
-    <header className="border-foreground/15 border-b">
-      <nav
-        aria-label="Principal"
-        className="mx-auto flex w-full max-w-xl items-center justify-between px-2"
-      >
-        <div className="flex items-center">
-          <Link href="/" className={`${linkClass} gap-2 font-semibold`}>
-            <Image
-              src="/brand/crest.webp"
-              alt=""
-              width={28}
-              height={29}
-              className="h-7 w-auto"
-            />
-            Varejista FC
-          </Link>
-          <Link href="/ranking" className={linkClass}>
-            Ranking
-          </Link>
-          <Link href="/partidas" className={linkClass}>
-            Partidas
-          </Link>
-        </div>
-        <Link href={actor ? "/conta" : "/entrar"} className={linkClass}>
-          {actor ? "Conta" : "Entrar"}
-        </Link>
-      </nav>
-    </header>
+    <AppNav
+      user={user}
+      canManageGameplay={can(actor, { action: "stats.manage" })}
+      canManageAccounts={can(actor, { action: "accounts.manage" })}
+      live={openNight !== null}
+    />
   );
 }
