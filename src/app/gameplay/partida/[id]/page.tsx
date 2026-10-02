@@ -1,16 +1,12 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { AccessDenied } from "@/components/access-denied";
-import { ActionButton } from "@/components/gameplay/action-button";
+import { DeleteMatchButton } from "@/components/gameplay/delete-match-button";
 import { MatchForm } from "@/components/gameplay/match-form";
 import { Page, PageHeader } from "@/components/ui/layout";
-import { deleteMatch } from "@/server/actions/gameplay-actions";
 import { getActorWithPermission } from "@/server/auth/page-access";
 import { getMatchDetail, getOpenNight } from "@/server/nights/queries";
-import {
-  listOpponentNames,
-  listPlayersForMatch,
-} from "@/server/players/queries";
+import { listPlayersForMatch } from "@/server/players/queries";
 
 export const metadata: Metadata = { title: "Corrigir partida" };
 
@@ -32,10 +28,7 @@ export default async function EditMatchPage(
   // Só partidas da gameplay em andamento podem ser corrigidas.
   if (!night || night.id !== match.nightId) redirect("/gameplay");
 
-  const [players, opponentNames] = await Promise.all([
-    listPlayersForMatch(match.id),
-    listOpponentNames(),
-  ]);
+  const players = await listPlayersForMatch(match.id);
 
   return (
     <Page className="overflow-x-clip">
@@ -47,7 +40,6 @@ export default async function EditMatchPage(
 
       <MatchForm
         players={players}
-        opponentNames={opponentNames}
         initial={{
           matchId: match.id,
           opponentName: match.opponentName,
@@ -70,18 +62,12 @@ export default async function EditMatchPage(
       />
 
       <div className="border-line/50 border-t pt-6">
-        <ActionButton
-          action={deleteMatch.bind(null, { matchId: match.id })}
-          label="Excluir esta partida"
-          pendingLabel="Excluindo"
-          variant="danger"
-          size="md"
-          redirectTo="/gameplay"
-          confirm={{
-            title: "Excluir esta partida?",
-            message: "Ela sai das estatísticas da noite.",
-            confirmLabel: "Excluir partida",
-          }}
+        <DeleteMatchButton
+          matchId={match.id}
+          opponentName={match.opponentName}
+          goalsFor={match.goalsFor}
+          goalsAgainst={match.goalsAgainst}
+          onlyMatchOfNight={night.matches.length === 1}
         />
       </div>
     </Page>

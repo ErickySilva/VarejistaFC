@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ActionButton } from "@/components/gameplay/action-button";
+import { DeleteMatchButton } from "@/components/gameplay/delete-match-button";
 import { Score } from "@/components/matches/match-row";
 import { MatchTypeBadge, ResultMark } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
@@ -13,11 +15,13 @@ import { FORWARD } from "@/components/ui/transitions";
 import { Stat, StatGroup } from "@/components/ui/stat";
 import type { MatchResult } from "@/domain/match";
 import { isGoalkeeper, POSITION_LABEL } from "@/domain/positions";
-import { formatReferenceDate } from "@/domain/reference-date";
+import { formatReferenceDate, referenceDateFor } from "@/domain/reference-date";
 import { formatDateTime, formatRating, UNAVAILABLE } from "@/lib/format";
 import { can } from "@/server/auth/policy";
 import { getActor } from "@/server/auth/session";
+import { startGameplay } from "@/server/actions/gameplay-actions";
 import { getMatchPage } from "@/server/matches/queries";
+import { getNightDetail } from "@/server/nights/queries";
 import { getPlayerPhotos } from "@/server/players/directory";
 
 type Props = PageProps<"/partidas/[id]">;
@@ -62,8 +66,16 @@ export default async function MatchPage({ params, searchParams }: Props) {
     isGoalkeeper(participation.position),
   );
   // Só a gameplay em andamento pode ser operada; o servidor confere de novo.
-  const canOperate =
-    night.status === "open" && can(actor, { action: "stats.manage" });
+  const isAdmin = can(actor, { action: "stats.manage" });
+  const canOperate = night.status === "open" && isAdmin;
+  // Gameplay encerrada só pode ser reaberta no mesmo dia (regra da gameplay).
+  const canReopen =
+    isAdmin &&
+    night.status === "closed" &&
+    night.referenceDate === referenceDateFor(new Date());
+  const nightMatchCount = canOperate
+    ? ((await getNightDetail(night.id))?.matches.length ?? 0)
+    : 0;
 
   return (
     <Page>
@@ -269,6 +281,46 @@ export default async function MatchPage({ params, searchParams }: Props) {
           </StatGroup>
         </Section>
       ))}
+
+      {isAdmin && (
+        <Section title="Administração da partida">
+          {canOperate ? (
+            <DeleteMatchButton
+              matchId={match.id}
+              opponentName={match.opponentName}
+              goalsFor={match.goalsFor}
+              goalsAgainst={match.goalsAgainst}
+              onlyMatchOfNight={nightMatchCount === 1}
+            />
+          ) : canReopen ? (
+            <>
+              <Notice tone="info">
+                Esta gameplay está encerrada. Para corrigir ou excluir a
+                partida, reabra a gameplay. Só dá para reabrir no mesmo dia.
+              </Notice>
+              <ActionButton
+                action={startGameplay}
+                label="Reabrir gameplay"
+                pendingLabel="Reabrindo"
+                variant="secondary"
+                size="md"
+                confirm={{
+                  title: `Reabrir a gameplay de ${formatReferenceDate(night.referenceDate)}?`,
+                  message:
+                    "Os prêmios e o resumo desta noite são apagados agora e calculados de novo quando a gameplay for encerrada.",
+                  confirmLabel: "Reabrir gameplay",
+                }}
+              />
+            </>
+          ) : (
+            <Notice tone="info">
+              Esta partida é de uma gameplay encerrada em outro dia. Ela não
+              pode mais ser corrigida nem excluída: a gameplay só pode ser
+              reaberta no próprio dia.
+            </Notice>
+          )}
+        </Section>
+      )}
     </Page>
   );
 }

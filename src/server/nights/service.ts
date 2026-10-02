@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, notExists, sql } from "drizzle-orm";
 import { getDb, withTransaction } from "@/db";
 import {
   matches,
@@ -7,6 +7,7 @@ import {
   nicknameAssignments,
   nightAwards,
   nights,
+  opponents,
   seasons,
 } from "@/db/schema";
 import { summarizeNight } from "@/domain/night";
@@ -50,17 +51,19 @@ async function countActiveMatches(nightId: number): Promise<number> {
 
 // Remove uma noite que não tem nenhuma partida válida. As partidas que
 // restarem nela já estavam excluídas logicamente; o conteúdo delas continua
-// na auditoria.
+// na auditoria. Nada relacionado fica para trás: participações, apelidos da
+// noite, prêmios e o adversário que só existia por causa dessas partidas.
 async function discardEmptyNight(
   context: RequestContext,
   night: { id: number; referenceDate: string },
 ) {
   const db = getDb();
   const leftovers = await db
-    .select({ id: matches.id })
+    .select({ id: matches.id, opponentId: matches.opponentId })
     .from(matches)
     .where(eq(matches.nightId, night.id));
   const matchIds = leftovers.map((match) => match.id);
+  const opponentIds = [...new Set(leftovers.map((match) => match.opponentId))];
 
   if (matchIds.length > 0) {
     await db
@@ -77,6 +80,26 @@ async function discardEmptyNight(
   await db.delete(nightAwards).where(eq(nightAwards.nightId, night.id));
   await db.delete(nights).where(eq(nights.id, night.id));
 
+  // Adversários sem nenhuma partida restante (em qualquer noite) saem junto.
+  // Quem ainda tem partida, mesmo excluída logicamente, é mantido.
+  const removedOpponents =
+    opponentIds.length === 0
+      ? []
+      : await db
+          .delete(opponents)
+          .where(
+            and(
+              inArray(opponents.id, opponentIds),
+              notExists(
+                db
+                  .select({ one: sql`1` })
+                  .from(matches)
+                  .where(eq(matches.opponentId, opponents.id)),
+              ),
+            ),
+          )
+          .returning({ id: opponents.id });
+
   await recordAudit({
     actorUserId: context.actor.userId,
     action: "delete",
@@ -86,6 +109,7 @@ async function discardEmptyNight(
       referenceDate: night.referenceDate,
       reason: "gameplay sem partidas",
       removedDeletedMatches: matchIds.length,
+      removedOpponents: removedOpponents.length,
     },
   });
 }

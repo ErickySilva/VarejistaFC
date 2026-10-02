@@ -65,7 +65,6 @@ interface PlayerStats {
 
 export interface MatchFormProps {
   players: RosterPlayer[];
-  opponentNames: string[];
   // Presente na edição: a partida que está sendo corrigida.
   initial?: MatchInputValues & { matchId: number };
 }
@@ -157,7 +156,7 @@ function StepActions({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function MatchForm({ players, opponentNames, initial }: MatchFormProps) {
+export function MatchForm({ players, initial }: MatchFormProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [step, setStep] = useState<Step>(0);
@@ -354,37 +353,16 @@ export function MatchForm({ players, opponentNames, initial }: MatchFormProps) {
             )}
           </fieldset>
 
-          <div className="flex flex-col gap-2">
-            <Field label="Adversário">
-              <Input
-                value={opponentName}
-                onChange={(event) => setOpponentName(event.target.value)}
-                list="adversarios"
-                maxLength={60}
-                autoComplete="off"
-                placeholder="Nome do time adversário"
-              />
-            </Field>
-            <datalist id="adversarios">
-              {opponentNames.map((name) => (
-                <option key={name} value={name} />
-              ))}
-            </datalist>
-            {opponentName.trim() === "" && opponentNames.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {opponentNames.slice(0, 4).map((name) => (
-                  <button
-                    key={name}
-                    type="button"
-                    onClick={() => setOpponentName(name)}
-                    className="bg-surface text-soft hover:text-fg min-h-9 rounded-md px-3 text-sm transition-colors"
-                  >
-                    {name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Texto livre, só desta partida: sem lista nem sugestão de anteriores. */}
+          <Field label="Adversário">
+            <Input
+              value={opponentName}
+              onChange={(event) => setOpponentName(event.target.value)}
+              maxLength={60}
+              autoComplete="off"
+              placeholder="Nome do time adversário"
+            />
+          </Field>
 
           <fieldset>
             <legend className="text-soft mb-3 text-sm font-medium">

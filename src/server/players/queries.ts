@@ -4,7 +4,6 @@ import { getDb } from "@/db";
 import {
   matchPlayers,
   nicknames,
-  opponents,
   players,
   playerTotalsOverallView,
 } from "@/db/schema";
@@ -98,14 +97,6 @@ export async function getPlayerProfile(
       .filter((nickname) => nickname.tone === "bad")
       .map((nickname) => nickname.label),
   };
-}
-
-export async function listOpponentNames(): Promise<string[]> {
-  const rows = await getDb()
-    .select({ name: opponents.name })
-    .from(opponents)
-    .orderBy(asc(opponents.name));
-  return rows.map((row) => row.name);
 }
 
 export interface OverallRankingRow {

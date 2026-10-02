@@ -915,3 +915,135 @@ describe("cancelar gameplay vazia", () => {
     expect(await count("nights")).toBe(1);
   });
 });
+
+describe("adversário sem partidas ao descartar a noite", () => {
+  it("remove o adversário que só existia por causa da partida excluída", async () => {
+    const started = await startGameplay(admin, FRIDAY_EVENING);
+    const match = await registerMatch(
+      admin,
+      matchInput({ opponentName: "Corinthians" }),
+    );
+    expect(await count("opponents")).toBe(1);
+
+    await deleteMatch(admin, { matchId: match.id });
+    // Excluída logicamente, a partida ainda aponta para o adversário.
+    expect(await count("opponents")).toBe(1);
+
+    await cancelGameplay(admin);
+
+    expect(await count("opponents")).toBe(0);
+    expect((await audits("nights")).at(-1)).toMatchObject({
+      action: "delete",
+      entity_id: String(started.nightId),
+      before: { removedDeletedMatches: 1, removedOpponents: 1 },
+    });
+  });
+
+  it("mantém o adversário que ainda tem partida em outra gameplay", async () => {
+    await startGameplay(admin, FRIDAY_EVENING);
+    await registerMatch(admin, matchInput({ opponentName: "Rivais FC" }));
+    await closeGameplay(admin, FRIDAY_EVENING);
+
+    await startGameplay(admin, SATURDAY_EVENING);
+    const repeated = await registerMatch(
+      admin,
+      matchInput({ opponentName: "rivais fc" }),
+      SATURDAY_EVENING,
+    );
+    const other = await registerMatch(
+      admin,
+      matchInput({ opponentName: "Corinthians" }),
+      SATURDAY_EVENING,
+    );
+    await deleteMatch(admin, { matchId: repeated.id });
+    await deleteMatch(admin, { matchId: other.id });
+    await cancelGameplay(admin);
+
+    const names = await sql`select name from opponents order by name`;
+    expect(names.map((row) => row.name)).toEqual(["Rivais FC"]);
+    expect(await count("matches")).toBe(1);
+  });
+});
+
+describe("remover a única partida de uma gameplay encerrada no mesmo dia", () => {
+  // Quinta, 1/10/2026, 20h em São Paulo: uma gameplay anterior, já encerrada.
+  const THURSDAY_EVENING = new Date("2026-10-01T23:00:00Z");
+  // Sexta, 2/10/2026, 22h em São Paulo: ainda o mesmo dia da gameplay.
+  const FRIDAY_LATER = new Date("2026-10-03T01:00:00Z");
+
+  // Tudo o que as telas mostram: totais, ranking, noites, prêmios e partidas.
+  async function everything() {
+    return {
+      system: await sql`
+        select * from v_player_totals_system order by player_id`,
+      overall: await sql`
+        select * from v_player_totals_overall order by player_id`,
+      ranking: await getOverallRanking(),
+      nights: await sql`
+        select id, reference_date::text, status, closed_at, summary
+        from nights order by id`,
+      awards: await sql`
+        select night_id, award, player_id, value
+        from night_awards order by night_id, award, player_id`,
+      matches: await sql`
+        select id, night_id, sequence, goals_for, goals_against, deleted_at
+        from matches order by id`,
+      participations: await sql`
+        select match_id, player_id, goals, assists, rating
+        from match_players order by match_id, player_id`,
+      opponents: await sql`select name from opponents order by name`,
+      nicknameAssignments: await count("nickname_assignments"),
+    };
+  }
+
+  it("reabrir, excluir e cancelar devolve tudo ao que era antes da partida", async () => {
+    await startGameplay(admin, THURSDAY_EVENING);
+    await registerMatch(admin, matchInput(), THURSDAY_EVENING);
+    await closeGameplay(admin, THURSDAY_EVENING);
+    const before = await everything();
+
+    // A partida de teste: 4 × 0, dois gols do Lucão e duas assistências do
+    // Ericky, na única partida da gameplay de sexta.
+    await startGameplay(admin, FRIDAY_EVENING);
+    const test = await registerMatch(
+      admin,
+      matchInput({
+        opponentName: "Corinthians",
+        goalsFor: 4,
+        goalsAgainst: 0,
+        participations: [line(lucao, "ATA", 2, 0), line(ericky, "MEI", 0, 2)],
+      }),
+      FRIDAY_EVENING,
+    );
+    await closeGameplay(admin, FRIDAY_EVENING);
+    expect(await totals(lucao)).toMatchObject({ matches: 2, goals: 4 });
+    expect(await count("night_awards")).toBeGreaterThan(before.awards.length);
+
+    // Com a gameplay encerrada a partida continua protegida.
+    await expect(
+      deleteMatch(admin, { matchId: test.id }),
+    ).rejects.toMatchObject({ code: "NIGHT_CLOSED" });
+
+    // O caminho previsto: reabrir no mesmo dia, excluir e cancelar.
+    const reopened = await startGameplay(admin, FRIDAY_LATER);
+    expect(reopened.outcome).toBe("reopened");
+    await deleteMatch(admin, { matchId: test.id }, FRIDAY_LATER);
+    await cancelGameplay(admin);
+
+    expect(await everything()).toEqual(before);
+    expect(await getOpenNight()).toBeNull();
+    expect((await getLatestClosedNight())?.referenceDate).toBe("2026-10-01");
+  });
+
+  it("player não reabre nem cancela", async () => {
+    await startGameplay(admin, FRIDAY_EVENING);
+    await registerMatch(admin, matchInput(), FRIDAY_EVENING);
+    await closeGameplay(admin, FRIDAY_EVENING);
+
+    await expect(startGameplay(player, FRIDAY_LATER)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    expect(await nightRows()).toMatchObject([{ status: "closed" }]);
+    expect(await count("night_awards")).toBeGreaterThan(0);
+  });
+});

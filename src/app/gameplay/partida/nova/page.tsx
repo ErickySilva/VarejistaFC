@@ -6,7 +6,7 @@ import { Page, PageHeader } from "@/components/ui/layout";
 import { formatReferenceDate } from "@/domain/reference-date";
 import { getActorWithPermission } from "@/server/auth/page-access";
 import { getOpenNight } from "@/server/nights/queries";
-import { listActivePlayers, listOpponentNames } from "@/server/players/queries";
+import { listActivePlayers } from "@/server/players/queries";
 
 export const metadata: Metadata = { title: "Registrar partida" };
 
@@ -17,10 +17,7 @@ export default async function NewMatchPage() {
   const night = await getOpenNight();
   if (!night) redirect("/gameplay");
 
-  const [players, opponentNames] = await Promise.all([
-    listActivePlayers(),
-    listOpponentNames(),
-  ]);
+  const players = await listActivePlayers();
 
   return (
     <Page className="overflow-x-clip pb-0! md:pb-0!">
@@ -29,7 +26,7 @@ export default async function NewMatchPage() {
         back={{ href: "/gameplay", label: "Gameplay" }}
         description={`Partida ${night.matches.length + 1} da gameplay de ${formatReferenceDate(night.referenceDate)}`}
       />
-      <MatchForm players={players} opponentNames={opponentNames} />
+      <MatchForm players={players} />
     </Page>
   );
 }

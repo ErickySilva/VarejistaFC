@@ -61,6 +61,11 @@ Não ficam no histórico. Uma gameplay aberta sem nenhuma partida válida pode
 ser **cancelada**, o que remove a noite. Se nela só restavam partidas já
 excluídas, essas linhas são removidas junto; o conteúdo delas continua na
 auditoria. É a única situação em que partidas são apagadas fisicamente.
+O adversário que ficar sem nenhuma partida depois disso é removido junto.
+
+Para tirar uma partida de uma gameplay já encerrada, o caminho é reabrir a
+gameplay (só no mesmo dia), excluir a partida e encerrar de novo; se ela era
+a única, cancelar a gameplay. A página da partida mostra esse caminho ao admin.
 
 ### Validação em três camadas
 
