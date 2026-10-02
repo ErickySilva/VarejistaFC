@@ -1,7 +1,6 @@
 "use server";
 
 import {
-  createAccount as createAccountService,
   deactivateAccount as deactivateAccountService,
   listAccounts as listAccountsService,
   reactivateAccount as reactivateAccountService,
@@ -12,7 +11,6 @@ import {
 import { protectedAction } from "./factory";
 import {
   accountIdSchema,
-  createAccountSchema,
   noInputSchema,
   setAccountPasswordSchema,
   setAccountPlayerSchema,
@@ -20,17 +18,13 @@ import {
 } from "./schemas";
 
 // Gestão de contas: tudo aqui exige admin. A permissão é conferida no envelope
-// e de novo no serviço, junto do dado.
+// e de novo no serviço, junto do dado. Contas novas nascem pelo convite
+// (invite-actions.ts): o admin não define a senha de ninguém ao criar.
 const MANAGE_ACCOUNTS = { action: "accounts.manage" } as const;
 
 export const listAccounts = protectedAction(MANAGE_ACCOUNTS, {
   schema: noInputSchema,
   handler: (_input, context) => listAccountsService(context),
-});
-
-export const createAccount = protectedAction(MANAGE_ACCOUNTS, {
-  schema: createAccountSchema,
-  handler: (input, context) => createAccountService(context, input),
 });
 
 export const setAccountRole = protectedAction(MANAGE_ACCOUNTS, {

@@ -23,7 +23,9 @@ export type ServiceErrorCode =
   | "INVALID_MATCH"
   | "SEASON_ALREADY_EXISTS"
   | "PLAYER_WITHOUT_ACCOUNT"
-  | "TOO_MANY_ATTEMPTS";
+  | "TOO_MANY_ATTEMPTS"
+  | "INVALID_INVITE"
+  | "INVITE_CONFLICT";
 
 const DEFAULT_MESSAGES: Record<ServiceErrorCode, string> = {
   UNAUTHENTICATED: "Entre para continuar.",
@@ -51,10 +53,16 @@ const DEFAULT_MESSAGES: Record<ServiceErrorCode, string> = {
     "Não há temporada ativa. Um administrador precisa ativar uma temporada.",
   SEASON_ALREADY_EXISTS: "Já existe uma temporada com este nome.",
   PLAYER_WITHOUT_ACCOUNT:
-    "Este jogador ainda não tem conta. Peça a um administrador para criar.",
+    "Este jogador ainda não tem conta. Peça um convite a um administrador.",
   TOO_MANY_ATTEMPTS:
     "Muitas tentativas com senha errada. Tente de novo em alguns minutos.",
   INVALID_MATCH: "Os dados da partida são inválidos.",
+  // Uma mensagem só para código inexistente, usado, substituído ou vencido:
+  // a resposta não revela qual é o caso.
+  INVALID_INVITE:
+    "Convite inválido ou expirado. Confira o código ou peça um novo a um administrador.",
+  INVITE_CONFLICT:
+    "Outro convite acabou de ser gerado para este jogador. Atualize a página.",
 };
 
 export class ServiceError extends Error {
@@ -108,6 +116,8 @@ const CONSTRAINT_ERROR_CODES: Record<string, ServiceErrorCode> = {
   users_email_unique: "EMAIL_IN_USE",
   users_at_least_one_admin: "LAST_ADMIN",
   users_player_id_players_id_fk: "NOT_FOUND",
+  account_invites_one_pending_per_player_idx: "INVITE_CONFLICT",
+  account_invites_player_id_players_id_fk: "NOT_FOUND",
   nights_single_open_idx: "PREVIOUS_NIGHT_OPEN",
   seasons_slug_unique: "SEASON_ALREADY_EXISTS",
   match_players_fifa_rating_range: "INVALID_MATCH",

@@ -1,6 +1,7 @@
 # 0011 — Autenticação e autorização com Better Auth
 
-**Status:** aceita
+**Status:** aceita. A criação de contas de jogador mudou no
+[ADR 0015](0015-cadastro-por-convite.md): passou a ser por convite.
 
 ## Contexto
 

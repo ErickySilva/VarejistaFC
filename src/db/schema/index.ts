@@ -4,5 +4,6 @@ export * from "./players";
 export * from "./nights";
 export * from "./matches";
 export * from "./auth";
+export * from "./invites";
 export * from "./audit";
 export * from "./views";

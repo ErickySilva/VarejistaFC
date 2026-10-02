@@ -9,7 +9,7 @@ export async function resetDatabase(sql: postgres.Sql) {
   await sql.begin(async (tx) => {
     await tx`alter table audit_log disable trigger audit_log_forbid_truncate`;
     await tx`
-      truncate audit_log, sessions, accounts, verifications, users,
+      truncate audit_log, account_invites, sessions, accounts, verifications, users,
         match_players, nickname_assignments, night_awards, matches, nights,
         seasons, opponents, nicknames, legacy_stats, players
       restart identity cascade`;

@@ -114,7 +114,8 @@ export function createActionFactory(resolvers: ActionResolvers) {
     };
   }
 
-  // Action aberta a visitantes. Só o login precisa disso.
+  // Action aberta a visitantes. Só o login e o cadastro por convite precisam
+  // disso.
   function publicAction<TSchema extends z.ZodType, TResult>(
     definition: ActionDefinition<TSchema, TResult, PublicContext>,
   ) {

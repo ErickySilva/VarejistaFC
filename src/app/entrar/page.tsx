@@ -80,6 +80,16 @@ export default async function EntryPage() {
                 Entrar com e-mail
               </Link>
             </div>
+            <p className="text-muted text-sm">
+              Recebeu um convite?{" "}
+              <Link
+                href="/criar-conta"
+                transitionTypes={FORWARD}
+                className="text-soft hover:text-fg -mx-1 inline-flex min-h-11 items-center px-1 font-medium underline underline-offset-4 transition-colors"
+              >
+                Criar conta
+              </Link>
+            </p>
           </nav>
         </div>
       </div>

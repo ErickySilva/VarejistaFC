@@ -4,6 +4,7 @@ import { AccountsManager } from "@/components/admin/accounts-manager";
 import { Page, PageHeader } from "@/components/ui/layout";
 import { getActorWithPermission } from "@/server/auth/page-access";
 import { requireContext } from "@/server/auth/session";
+import { listPendingInvites } from "@/server/invites/service";
 import { listActivePlayers } from "@/server/players/queries";
 import { listAccounts } from "@/server/users/service";
 
@@ -13,22 +14,25 @@ export default async function AccountsPage() {
   const actor = await getActorWithPermission({ action: "accounts.manage" });
   if (!actor) return <AccessDenied />;
 
-  // O serviço confere a permissão de novo antes de devolver as contas.
-  const [accounts, players] = await Promise.all([
-    listAccounts(await requireContext()),
+  // Os serviços conferem a permissão de novo antes de devolver os dados.
+  const context = await requireContext();
+  const [accounts, invites, players] = await Promise.all([
+    listAccounts(context),
+    listPendingInvites(context),
     listActivePlayers(),
   ]);
 
   return (
-    <Page width="wide">
+    <Page>
       <PageHeader
         title="Contas e permissões"
         back={{ href: "/admin", label: "Admin" }}
-        description="Cada conta entra pelo retrato do jogador a que está vinculada. Só administradores acessam esta área."
+        description="Cada jogador cria a própria conta com um convite gerado aqui e entra pelo seu retrato. Só administradores acessam esta área."
       />
 
       <AccountsManager
         accounts={accounts}
+        invites={invites}
         players={players.map((player) => ({
           id: player.id,
           name: player.name,

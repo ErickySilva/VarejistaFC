@@ -32,8 +32,9 @@ interface AppNavProps {
   live: boolean;
 }
 
-// Telas de tela cheia, sem navegação: a entrada do clube e a premiação.
-const IMMERSIVE = ["/entrar", "/login", "/premiacao"];
+// Telas de tela cheia, sem navegação: a entrada do clube, o cadastro por
+// convite e a premiação.
+const IMMERSIVE = ["/entrar", "/criar-conta", "/login", "/premiacao"];
 
 function LiveDot({ className = "" }: { className?: string }) {
   return (

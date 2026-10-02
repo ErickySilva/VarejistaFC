@@ -73,8 +73,15 @@ export default async function PlayerEntryPage({
               />
             ) : (
               <p className="text-soft text-center text-sm">
-                Este jogador ainda não tem conta. Peça a um administrador para
-                criar.
+                Este jogador ainda não tem conta. Peça um convite a um
+                administrador e{" "}
+                <Link
+                  href="/criar-conta"
+                  className="text-fg font-medium underline underline-offset-4"
+                >
+                  crie a sua conta
+                </Link>
+                .
               </p>
             )}
           </div>

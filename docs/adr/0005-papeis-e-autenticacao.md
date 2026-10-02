@@ -21,3 +21,7 @@ A biblioteca, as tabelas, a tabela de autorização e as proteções estão no
 [ADR 0011](0011-autenticacao-e-autorizacao.md). Um ajuste em relação ao texto
 acima: no próprio perfil, o `player` altera somente a foto do jogador
 vinculado à sua conta; nome, número da camisa e posição padrão são de admin.
+
+O cadastro continua fechado, mas a conta de um jogador passou a ser criada por
+ele mesmo, com um convite gerado por um admin
+([ADR 0015](0015-cadastro-por-convite.md)).

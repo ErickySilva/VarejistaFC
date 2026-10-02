@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { USER_ROLES } from "@/db/schema";
-import { MIN_PASSWORD_LENGTH } from "../auth/constants";
+import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "../auth/constants";
 
 // Entradas das Server Actions de autenticação e de contas. Nenhum schema tem
 // campo de autor: quem executa a ação vem sempre da sessão lida no servidor.
@@ -13,7 +13,10 @@ const newPassword = z
     MIN_PASSWORD_LENGTH,
     `A senha precisa de pelo menos ${MIN_PASSWORD_LENGTH} caracteres.`,
   )
-  .max(128, "A senha pode ter no máximo 128 caracteres.");
+  .max(
+    MAX_PASSWORD_LENGTH,
+    `A senha pode ter no máximo ${MAX_PASSWORD_LENGTH} caracteres.`,
+  );
 
 const userId = z.string().min(1);
 const playerId = z.number().int().positive();
@@ -35,13 +38,36 @@ export const changePasswordSchema = z.object({
   newPassword,
 });
 
-export const createAccountSchema = z.object({
-  email,
-  name: z.string().trim().min(1, "Informe o nome.").max(80),
-  password: newPassword,
+// Convite gerado por um admin: o jogador e o papel da futura conta.
+export const generateInviteSchema = z.strictObject({
+  playerId,
   role: z.enum(USER_ROLES),
-  playerId: playerId.nullable(),
 });
+
+// O que a pessoa digitou ou colou; o formato é conferido no serviço, que
+// responde o mesmo para qualquer código que não sirva.
+const inviteCode = z
+  .string()
+  .trim()
+  .min(1, "Informe o código do convite.")
+  .max(64, "Informe o código do convite.");
+
+export const checkInviteSchema = z.strictObject({ code: inviteCode });
+
+// Cadastro por convite. Objeto estrito: qualquer campo a mais, como
+// `playerId` ou `role`, faz a requisição inteira ser recusada. O jogador e o
+// papel vêm só do convite gravado no banco.
+export const registerWithInviteSchema = z
+  .strictObject({
+    code: inviteCode,
+    email,
+    password: newPassword,
+    passwordConfirmation: z.string(),
+  })
+  .refine((input) => input.password === input.passwordConfirmation, {
+    path: ["passwordConfirmation"],
+    message: "As senhas não são iguais.",
+  });
 
 export const setAccountRoleSchema = z.object({
   userId,

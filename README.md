@@ -16,7 +16,8 @@ clube, está descrita em [docs/design-system.md](docs/design-system.md).
 | `/partidas/[id]`          | Página permanente de uma partida                                    |
 | `/gameplay`               | Operação da gameplay (só admin)                                     |
 | `/entrar`                 | Entrada do clube: jogadores (tile e senha), admin e visitante       |
-| `/admin`, `/admin/contas` | Administração e gestão de contas (só admin)                         |
+| `/criar-conta`            | Cadastro do jogador com o código de convite gerado por um admin     |
+| `/admin`, `/admin/contas` | Administração, contas e convites (só admin)                         |
 | `/login`, `/conta`        | Entrada com e-mail (alternativa) e conta                            |
 
 As telas de estatística são abertas a visitantes, somente leitura.
