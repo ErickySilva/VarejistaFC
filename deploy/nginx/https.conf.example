@@ -1,0 +1,82 @@
+# MODELO do proxy com HTTPS. Não é carregado pelo Nginx enquanto tiver a
+# extensão ".example" e estiver fora de conf.d.
+#
+# Quando o domínio e o certificado existirem (ver docs/deploy-production.md,
+# "HTTPS"):
+#   1. troque SEU_DOMINIO abaixo pelo domínio real;
+#   2. copie este arquivo para deploy/nginx/conf.d/varejista.conf, no lugar da
+#      versão HTTP;
+#   3. publique a porta 443 e monte a pasta dos certificados no serviço
+#      `nginx` do compose.production.yaml;
+#   4. mude BETTER_AUTH_URL para https://SEU_DOMINIO.
+#
+# Nenhum certificado acompanha o repositório.
+
+limit_req_zone $binary_remote_addr zone=auth_login:10m rate=1r/m;
+limit_req_zone $binary_remote_addr zone=auth_general:10m rate=30r/m;
+limit_req_status 429;
+
+upstream varejista_app {
+  server app:3000;
+  keepalive 16;
+}
+
+# HTTP: só a validação do certificado e o redirecionamento para HTTPS.
+server {
+  listen 80 default_server;
+  server_name SEU_DOMINIO;
+  server_tokens off;
+
+  location = /nginx-health {
+    access_log off;
+    default_type text/plain;
+    return 200 "ok\n";
+  }
+
+  # Desafio do Let's Encrypt (certbot --webroot).
+  location /.well-known/acme-challenge/ {
+    root /var/www/certbot;
+  }
+
+  location / {
+    return 301 https://$host$request_uri;
+  }
+}
+
+server {
+  listen 443 ssl;
+  http2 on;
+  server_name SEU_DOMINIO;
+
+  server_tokens off;
+  client_max_body_size 1m;
+
+  ssl_certificate /etc/letsencrypt/live/SEU_DOMINIO/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/SEU_DOMINIO/privkey.pem;
+  ssl_protocols TLSv1.2 TLSv1.3;
+  ssl_session_cache shared:SSL:10m;
+  ssl_session_timeout 1d;
+  ssl_session_tickets off;
+
+  # HSTS: só aqui, porque só faz sentido com HTTPS funcionando. Comece com um
+  # prazo curto (max-age=300) e aumente depois de confirmar que tudo responde
+  # por HTTPS; o navegador guarda esta instrução pelo prazo informado.
+  add_header Strict-Transport-Security "max-age=31536000" always;
+
+  location /api/auth/sign-in/ {
+    limit_req zone=auth_login burst=7 nodelay;
+    include /etc/nginx/snippets/proxy.conf;
+    proxy_pass http://varejista_app;
+  }
+
+  location /api/auth/ {
+    limit_req zone=auth_general burst=20 nodelay;
+    include /etc/nginx/snippets/proxy.conf;
+    proxy_pass http://varejista_app;
+  }
+
+  location / {
+    include /etc/nginx/snippets/proxy.conf;
+    proxy_pass http://varejista_app;
+  }
+}

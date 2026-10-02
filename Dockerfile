@@ -14,6 +14,15 @@ COPY . .
 EXPOSE 3000
 CMD ["npm", "run", "dev", "--", "--hostname", "0.0.0.0"]
 
+# Operação: migrações, seed e criação do primeiro admin em produção. Tem as
+# dependências de desenvolvimento (drizzle-kit, tsx) e o código-fonte, por isso
+# fica fora da imagem final. Roda só sob demanda, e nunca como serviço (ver
+# compose.production.yaml, perfil "tools").
+FROM deps AS tools
+COPY --chown=node:node . .
+USER node
+CMD ["npm", "run", "db:migrate"]
+
 FROM deps AS builder
 COPY . .
 RUN npm run build

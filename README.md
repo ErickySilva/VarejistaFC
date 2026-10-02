@@ -4,7 +4,8 @@ Aplicação web para registrar e acompanhar as estatísticas do Varejista FC no
 EA FC Pro Clubs.
 
 Já funcionam o login, a gestão de contas no servidor, o fluxo de gameplay e as
-telas públicas de estatística. A identidade visual ainda é provisória.
+telas públicas de estatística. A identidade visual, derivada do escudo do
+clube, está descrita em [docs/design-system.md](docs/design-system.md).
 
 | Rota                      | O que mostra                                                        |
 | ------------------------- | ------------------------------------------------------------------- |
@@ -51,6 +52,16 @@ Para rodar também a aplicação dentro do Docker:
 docker compose --profile app up
 ```
 
+## Produção
+
+A stack de produção é `Nginx -> Next.js -> PostgreSQL`, com Docker Compose, em
+`compose.production.yaml` (separado do `compose.yaml` de desenvolvimento). O
+passo a passo de subida, migrações, seed, primeiro admin, backup, atualização
+e rollback está em [docs/deploy-production.md](docs/deploy-production.md).
+
+O arquivo de variáveis de produção (`.env.production`) nunca é versionado; o
+modelo é o `.env.production.example`.
+
 ## Scripts
 
 | Script                      | O que faz                                         |
@@ -89,10 +100,20 @@ docs/
 ## Documentação
 
 - [Decisões de arquitetura](docs/adr/README.md)
+- [Deploy de produção](docs/deploy-production.md)
+- [Identidade visual e design system](docs/design-system.md)
 - [Fórmula da nota v2 (vigente)](docs/nota-v2.md) e [v1](docs/nota-v1.md)
 
 ## CI
 
 O workflow em `.github/workflows/ci.yml` roda em todo push na `main` e em pull
-requests: formatação, lint, tipos, testes, build e build da imagem Docker de
-produção.
+requests: formatação, lint, tipos, testes, build, build da imagem Docker de
+produção e validação da stack de produção (Compose, Nginx, scripts de backup
+e imagem de operação). O CI só valida: não publica nem implanta nada.
+
+## Fotos dos jogadores
+
+Este repositório é público por decisão do projeto. As fotos reais dos
+jogadores, em `public/players/`, estão versionadas aqui por decisão consciente
+do projeto. Nenhum segredo, credencial ou dado de conta é
+versionado.

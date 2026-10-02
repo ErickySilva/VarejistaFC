@@ -18,6 +18,7 @@ Uma decisão só muda com um novo ADR que substitua o anterior.
 | [0011](0011-autenticacao-e-autorizacao.md)              | Autenticação e autorização com Better Auth               | Aceita |
 | [0012](0012-gameplay.md)                                | Fluxo de gameplay                                        | Aceita |
 | [0013](0013-tipos-de-partida-temporadas-e-nota-fifa.md) | Tipos de partida, recortes, temporadas e Nota FIFA       | Aceita |
+| [0014](0014-deploy-production.md)                       | Deploy de produção com Docker Compose e Nginx            | Aceita |
 
 A fórmula da nota vigente é a `v2`, em [../nota-v2.md](../nota-v2.md); ela parte da
 `v1`, em [../nota-v1.md](../nota-v1.md).

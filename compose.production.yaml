@@ -1,0 +1,139 @@
+# Produção: Internet -> Nginx -> Next.js -> PostgreSQL.
+#
+# Guia completo em docs/deploy-production.md. Uso, sempre com o arquivo de
+# variáveis de produção (que nunca é versionado):
+#
+#   docker compose --env-file .env.production -f compose.production.yaml up -d
+#
+# Variáveis obrigatórias não têm valor padrão: se faltar alguma, o Compose
+# recusa subir. Nenhuma credencial de desenvolvimento é reaproveitada aqui.
+name: varejista-fc-prod
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-app-environment: &app-environment
+  DATABASE_URL: postgres://${POSTGRES_USER:?Defina POSTGRES_USER}:${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:?Defina POSTGRES_DB}
+  BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Defina BETTER_AUTH_SECRET}
+  BETTER_AUTH_URL: ${BETTER_AUTH_URL:?Defina BETTER_AUTH_URL}
+
+services:
+  # Banco. Sem porta publicada: só é alcançado pela rede interna.
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Defina POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:?Defina POSTGRES_DB}
+      TZ: America/Sao_Paulo
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    logging: *logging
+
+  # Aplicação: a imagem de produção (estágio "runner" do Dockerfile), como
+  # usuário sem privilégios. Só o Nginx fala com ela; nada é publicado no host.
+  app:
+    image: varejista-fc:${APP_VERSION:-latest}
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    environment: *app-environment
+    expose:
+      - "3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend
+      - frontend
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "-O",
+          "/dev/null",
+          "http://127.0.0.1:3000/api/health",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging: *logging
+
+  # Proxy reverso: a única porta aberta para fora. Define os cabeçalhos de
+  # origem (X-Forwarded-For) e limita as requisições de autenticação.
+  nginx:
+    image: nginx:1.28-alpine
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    volumes:
+      - ./deploy/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./deploy/nginx/snippets:/etc/nginx/snippets:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - frontend
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "-O",
+          "/dev/null",
+          "http://127.0.0.1/nginx-health",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    logging: *logging
+
+  # Operação sob demanda: migrações, seed e primeiro admin. Não sobe com
+  # `up`; roda só quando chamado e termina:
+  #
+  #   docker compose ... run --rm tools npm run db:migrate
+  #   docker compose ... run --rm tools npm run db:seed
+  #   docker compose ... run --rm tools npm run auth:create-admin
+  tools:
+    profiles: ["tools"]
+    image: varejista-fc-tools:${APP_VERSION:-latest}
+    build:
+      context: .
+      target: tools
+    environment: *app-environment
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend
+    logging: *logging
+
+networks:
+  # Sem saída para a internet: banco, aplicação e ferramentas.
+  backend:
+    internal: true
+  frontend:
+
+volumes:
+  db-data:

@@ -66,3 +66,38 @@ jobs:
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Só validação: nada é publicado nem implantado a partir do CI.
+  production-stack:
+    name: Stack de produção (Compose, Nginx e operação)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Valida o compose.production.yaml
+        run: >-
+          docker compose --env-file .env.production.example
+          -f compose.production.yaml --profile tools config --quiet
+      - name: Confere que só o Nginx publica porta no host
+        run: |
+          published="$(docker compose --env-file .env.production.example \
+            -f compose.production.yaml --profile tools config --format json \
+            | jq -r '[.services | to_entries[] | select(.value.ports) | .key] | join(",")')"
+          echo "Serviços com porta publicada: $published"
+          test "$published" = "nginx"
+      - name: Valida a configuração do Nginx
+        run: >-
+          docker run --rm --add-host app:127.0.0.1
+          -v "$PWD/deploy/nginx/conf.d:/etc/nginx/conf.d:ro"
+          -v "$PWD/deploy/nginx/snippets:/etc/nginx/snippets:ro"
+          nginx:1.28-alpine nginx -t
+      - name: Valida a sintaxe dos scripts de backup e restauração
+        run: sh -n deploy/scripts/backup.sh && sh -n deploy/scripts/restore.sh
+      - uses: docker/setup-buildx-action@v3
+      - name: Build da imagem de operação (estágio tools)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: tools
+          push: false
+          cache-from: type=gha,scope=tools
+          cache-to: type=gha,mode=max,scope=tools

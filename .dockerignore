@@ -9,3 +9,5 @@ docs
 *.md
 Dockerfile
 compose*.yaml
+deploy
+backups
